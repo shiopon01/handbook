@@ -1,4 +1,3 @@
-# AWS CloudFormationの基本情報
+# 特徴
 
-## 料金
-
+スタック
