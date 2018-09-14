@@ -109,7 +109,7 @@ Parametersを設定していた場合、スタックの作成でパラメータ�
 
 例えば、 `RegionMap` というマッピングを宣言し、マッピング以下のキーでは各リージョンの識別子を設定する。キー以下の値も名前と値のペアとすることで、1つのキーに対して複数の値を設定することができる。
 
-習慣として `{"マッピング名": {"キー": {"名前": "値"} } }` のような、3つの値を指定して値を取り出す構造が一般的だ。
+習慣として `{"マッピング名": {"キー": {"名前": "値"} } }` のような、3つの値を指定して値を取り出す構造が一般的だ。キーにはよく、擬似パラメーター `AWS::Region` が利用される。（これによって、リージョンごとに使用する値を変更することができる。）
 
 テンプレート内でマッピングの値は組み込み関数 `FindMap` を使って参照できる。
 
@@ -127,7 +127,7 @@ Parametersを設定していた場合、スタックの作成でパラメータ�
       "Type": "AWS::S3::Bucket",
       "Properties": {
         "BucketName": {
-          "Fn::FindInMap": ["RegionMap", "us-east-1", "S3"]
+          "Fn::FindInMap": ["RegionMap", {"Ref": "AWS::Region"}, "S3"]
         }
       }
     }
@@ -149,11 +149,69 @@ Resources:
   MyS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !FindInMap ["RegionMap", "us-east-1", "S3"]
+      BucketName: !FindInMap ["RegionMap", !Ref AWS::Region, "S3"]
 ```
 
 ## Conditions - 条件分岐
 
+CloudFormationでは、条件に応じてResourceセクションに記述されたAWSリソース「作る」か「作らない」かを選択できる。それはAWSリソースに `Condition` キーと、その値に **Conditions** セクションで定義した条件分岐を設定するだけで良い。AWSリソースは設定した条件分岐が `true` であれば作成され、 `false` であるなら作成されない。
+
+CloudFormationには、使用する条件分岐は全てConditionsセクションに記述する決まりがあるため、AWSリソースの `Condition` キーを使用する場合はこのセクションも必要だ。条件分岐させようと思うとテンプレートや環境によっての変動値も必要になるので、自然とParametersセクションも利用することになるだろう。
+
+さて、このConditionsセクション内では値にもとづいた条件分岐を行わなければならないので、 `And` や `Or` などの条件分岐を行うための関数が必要だ。そこでCloudFormationでは、専用の **条件関数** が用意されている。（ `Fn::If` に限り、Resourcesセクション、Outputsセクションでも利用できる。）
+
+- Fn::If
+- Fn::And
+- Fn::Or
+- Fn::Equals
+- Fn::Not
+
+ここでは例として、`Fn::Equals` のみ説明する。これは単純で、配列の1つめの値と2つめの値が等しければ `true` 、そうでなければ `false` を返す関数だ。
+
+次のテンプレートは、パラメーターBucketCreateに渡された文字列が `true` であればResourceセクションのS3バケットが作成されるテンプレートだ。
+
+```json
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "BucketCreate": {
+        "Type": "String",
+        "Default": "true",
+        "Description": "create bucket?"
+      }
+    },
+  "Conditions": {
+    "CreateBucketResource": {
+      "Fn::Equals": [{"Ref": "BucketCreate"}, "true"]
+    }
+  },
+  "Resources": {
+    "MyS3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Condition": "CreateBucketResource"
+    }
+  }
+}
+```
+
+```yaml
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  BucketCreate:
+    Type: String
+    Default: 'true'
+    Description: create bucket?
+
+Conditions:
+  CreateBucketResource:
+    !Equals [!Ref BucketCreate, 'true']
+
+Resources:
+  MyS3Bucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateBucketResource
+```
 
 ## Outputs - 出力
 
