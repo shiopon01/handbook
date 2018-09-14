@@ -122,7 +122,7 @@ Fn::GetAtt:
   - attributeName
 ```
 
-Fn::GetAttの短縮形は属性の指定が配列ではなくなり、メソッド的な呼び出し方を使用する。いろいろなテンプレートを見たが、Fn::GetAttは短縮しないパターン（完全形）の書き方をよく見かける。
+Fn::GetAttの短縮形は属性の指定が配列ではなくなり、メソッド的な呼び出し方を使用する。 `Fn::` 部分も省略できる短縮形はクールだが、Fn::GetAttは短縮しないパターン（完全形）の書き方もよく見かける。
 
 ```yaml
 !GetAtt SampleResource.attributeName
@@ -166,35 +166,66 @@ Refと同じように、Fn::GetAttで取り出せる値は `Type` によって�
 
 ## Fn::Join
 
-**Fn::Join** は区切り記号を挟んで文字列配列を連結するための組み込み関数だ。引数には2つの要素を含んだ配列を渡し、その配列の1つめの要素には区切り記号（文字列）、2つめの要素には連結させたい文字列配列を入れておく。Refの例で出たJoinでは、`"mybucket-"` と `!Ref AWS::AccountId` が `""（空文字列）` で結合されていることが分かる。
+**Fn::Join** は区切り文字（文字列）を挟んで文字列配列を連結するための組み込み関数だ。プログラミング言語でもよく見かけるため、イメージし易いだろう。
+
+関数に区切り文字と連結させたい文字列配列を含んだ配列を渡すことで、文字列配列の要素が区切り文字で連結された値が返される。
+
+```json
+{"Fn::Join": ["-", ["Hello", "AWS", "CloudFormation"]]}
+```
+
+```yaml
+Fn::Join: ["-", ["Hello", "AWS", "CloudFormation"]]
+```
+
+YAML的な書き方として、こういう書き方も出来る。
+
+```yaml
+Fn::Join:
+  - '-'
+  - - Hello
+    - AWS
+    - CloudFormation
+```
+
+この結果はどれも `Hello-AWS-CloudFormation` だ。Fn::Joinの短縮形はRefと同じように、ほとんど変わらない。GetAttと同じように `Fn::` を持つ組み込み関数なので、短縮形ではこれを省略できる。
+
+```yaml
+!Join ["-", ["Hello", "AWS", "CloudFormation"]]
+```
+
+次のテンプレートでは、擬似パラメーター `AWS::AccountId` からRefで取得したアカウントIDをもともと設定してある文字列 `bucket` と `-` で連結させるテンプレートだ。アカウントで重複しないアカウントIDは、名前の重複が許されないS3バケットの名付けに便利でよく利用される。
+
+```json
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "MyS3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": {
+          "Fn::Join": ["-", [{"Ref": "AWS::AccountId"}, "bucket"]]
+        }
+      }
+    }
+  }
+}
+```
 
 ```yaml
 AWSTemplateFormatVersion: 2010-09-09
-Resources:
 
+Resources:
   MyS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketName:
-        Fn::Join:
-          - ''
-          - - 'mybuket-'
-            - !Ref AWS::AccountId
+        !Join ["-", [!Ref AWS::AccountId, "bucket"]]
 ```
 
-YAMLなので分かり辛いかもしれないが、実際の配列にすると `["", ["mybucket-", !Ref AWS::AccountId] ]` となる。YAMLのテンプレート内の配列はこの形で書き換えることも可能。どちらの形もよく利用されており、場面によって使い分けられていたりするので一概にどちらかが良いとは言えない。また、Joinにも短縮形があり、完全形の構文が `Fn::Join:` で短縮形の構文が `!Join` だが、YAML的にキーの後に続けて `!Join` を置けるかどうか、くらいの違いしか無い。 `!Join` と `[]` の配列の形を組み合わせることで、キーの値として1行でJoinを記述することが可能。
 
-```yaml
-AWSTemplateFormatVersion: 2010-09-09
-Resources:
 
-  MyS3Bucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Join ["", ["mybucket-", {"Ref": "AWS::AccountId"}] ]
-```
-
-# Fn::Sub
+## Fn::Sub
 
 **Fn::Sub** 特定の文字列を指定した値に置き換えることができる組み込み関数で、これもまた大変便利な関数だ。Refと同じくらいよく使う言っても過言ではない。Subでは空文字列や短い文字で結合するような複雑でないJoinを置き換えることも可能だが、結局はどちらも欲しい文字列を生成する同じ用途の関数なので、これは可読性で選択することになる。
 
