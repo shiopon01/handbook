@@ -4,7 +4,7 @@
 
 ここでは、テンプレート（1）に引き続き、AWS CloudFormationで使用できるテンプレートの構文について説明する。CloudFormationのより詳しいテンプレートの書き方について求めているのであれば、この記事だ。 `Mappings` や `Conditions` についてさらに詳しい話は別の記事に書くかもしれない。
 
-今回もこのS3バケットを作成するだけのテンプレートを使ってセクションの説明を行う。
+今回もこのS3バケットを作成するだけのテンプレートを基本として、各セクションの説明を行う。
 
 ```json
 {
@@ -19,6 +19,7 @@
 
 ```yaml
 AWSTemplateFormatVersion: 2010-09-09
+
 Resources:
   MyS3Bucket:
     Type: AWS::S3::Bucket
@@ -26,7 +27,7 @@ Resources:
 
 ## Description - 説明
 
-スタック（テンプレート）を説明したいのであれば **Description** セクションが利用できる。テンプレートに記述するかは任意だが、プログラムでのコメントのように、書いておいたほうが良いもののひとつではあるだろう。必ず `AWSTemplateFormatVersion` セクションの後に記述決まりがある。
+スタック（テンプレート）を説明したいのであれば **Description** セクションが利用できる。テンプレートに記述するかは任意だが、プログラムでのコメントのように、書いておいたほうが良いもののひとつではあるだろう。必ず `AWSTemplateFormatVersion` セクションの後に記述するという決まりがある。
 
 ```json
 {
@@ -42,7 +43,6 @@ Resources:
 
 ```yaml
 AWSTemplateFormatVersion: 2010-09-09
-
 Description: S3バケットを作成
 
 Resources:
@@ -52,9 +52,9 @@ Resources:
 
 ## Parameters - 引数
 
-プログラムの関数で言う引数のようなもので、 **Parameters** を設定することでテンプレートの値を自由に変更できる。Parameters内でパラメーターの名前を設定し、その下で型（ **Type** ）やデフォルト値（ **Default** ）などを設定する。スタックの説明と同じように、ここにも **Default** がいる。必須のキーは `Type` のみ。（設定できるキーは多いため、公式ドキュメント参照のこと。）
+プログラムの関数で言う引数のようなもので、 **Parameters** を設定することでテンプレートの値を自由に変更できる。Parameters内で引数の名前を設定し、その下で型（ **Type** ）やデフォルト値（ **Default** ）などを設定する。スタックの説明と同じように、ここにも **Default** がいる。必須のキーは `Type` のみ。（設定できるキーは多いため、公式ドキュメント参照のこと。）
 
-テンプレート内で、パラメーターの値は組み込み関数 `Ref` などで参照できる。
+テンプレート内でParametersの値は組み込み関数 `Ref` などで参照できる。
 
 ```json
 {
@@ -121,7 +121,7 @@ Parametersを設定していた場合、スタックの作成でパラメータ�
       "us-east-1" : { "S3" : "us-east-1-bucket"},
       "us-west-1" : { "S3" : "us-west-1-bucket"}
     }
-  }
+  },
   "Resources": {
     "MyS3Bucket": {
       "Type": "AWS::S3::Bucket",
@@ -223,6 +223,7 @@ Resources:
 
 ```yaml
 AWSTemplateFormatVersion: 2010-09-09
+
 Resources:
   MyS3Bucket:
     Type: 'AWS::S3::Bucket'

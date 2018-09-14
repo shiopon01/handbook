@@ -1,12 +1,10 @@
-# 組み込み関数
+# 組み込み関数 1
 
-さて、ここまででAWS CloudFormationを利用するまでの流れは一通り説明した。ここからは、CloudFormationのテンプレートをより柔軟にする、テンプレート内で使えるいくつかの組み込み関数を解説する。
+さて、ここまででAWS CloudFormationを利用するまでの流れは一通り説明した。ここからは、CloudFormationのテンプレートをより柔軟にする、テンプレート内で使えるCloudFormationの組み込み関数を紹介する。
 
 組み込み関数を使用することで、パラメーターやリソースの値を取得したり（ `Ref` ）、事前に定義したマップの値を抜き出したり（ `Fn::FindInMap` ）、値をBase64に変換したり（ `Fn::Base64` ）、別のスタックでエクスポートされた値を取得したり（ `Fn::ImportValue` ）、様々なことが出来るようになる。
 
-次のリストは、CloudFormationに用意されている組み込み関数の全てだ。
-
-。その中で、条件関数以外を頻繁に利用する順にだいたいで並べるとこのような順番になると思う。1つのテンプレートで何度も利用するのは特に上から5つ、6つだが、それ以外も全く使わないわけではない。
+次のリストは、CloudFormationに用意されている組み込み関数の全てだ。全てを利用することはほとんど無いが、どういう関数があるかを知っておくに越したことはない。
 
 - Ref
 - Fn::GetAtt
@@ -26,9 +24,7 @@
   - Fn::Equals
   - Fn::Not
 
-このページでは、それぞれの組み込み関数を解説していく。
-
-# Ref
+## Ref
 
 CloudFormationのテンプレートで一番よく見かけ、よく使う組み込み関数はこの **Ref** だ。Refは指定したパラメーターの値、または指定したコンポーネントから作成されたAWSリソースの値を取り出すことができる。
 
@@ -171,18 +167,19 @@ Outputs:
         - { WebsiteURL: !GetAtt MyS3Bucket.WebsiteURL }
 ```
 
-# Fn::ImportValue
+## Fn::ImportValue
+## Fn::FindInMap
+## Fn::GetAZs
+## Fn::Cidr
+## Fn::Select
+## Fn::Split
+## Fn::Base64
+## Fn::If
+## Fn::Or
+## Fn::And
+## Fn::Equals
+## Fn::Not
 
-
-
-
-# [WIP]
-
-# 参考
+## 参考
 
 - [組み込み関数リファレンス](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference.html)
-- [Refのドキュメント](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-ref.html)
-- [Fn::GetAttのドキュメント](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-getatt.html)
-- [Fn::Joinのドキュメント](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-join.html)
-- [Fn::Subのドキュメント](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-sub.html)
-- [Fn::ImportValueのドキュメント](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-importvalue.html)
