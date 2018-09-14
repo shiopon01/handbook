@@ -4,7 +4,7 @@
 
 組み込み関数を使用することで、パラメーターやリソースの値を取得したり（ `Ref` ）、事前に定義したマップの値を抜き出したり（ `Fn::FindInMap` ）、値をBase64に変換したり（ `Fn::Base64` ）、別のスタックでエクスポートされた値を取得したり（ `Fn::ImportValue` ）、様々なことが出来るようになる。
 
-次のリストは、CloudFormationに用意されている組み込み関数の全てだ。全てを利用することはほとんど無いが、どういう関数があるかを知っておくに越したことはない。全ての関数を簡単に説明していく。
+次のリストは、CloudFormationに用意されている組み込み関数の全てだ。全てを利用することはほとんど無いが、どういう関数があるかを知っておくに越したことはない。条件関数を除く、全ての関数を簡単に説明していく。（条件関数は別記事）
 
 - Ref
 - Fn::GetAtt
@@ -334,11 +334,24 @@ Fn::Sub: ${AWS::AccountId}
 ## Fn::Select
 ## Fn::Split
 ## Fn::Base64
-## Fn::If
-## Fn::Or
-## Fn::And
-## Fn::Equals
-## Fn::Not
+
+**Fn::Base64** は渡された文字列をBase64に変換する関数だ。
+
+```json
+{"Fn::Base64": "AWS CloudFormation"}
+```
+
+```yaml
+Fn::Base64: AWS CloudFormation
+```
+
+短縮形はほとんど変わらない。
+
+```yaml
+!Base64 AWS CloudFormation
+```
+
+ちなみに、この結果は `QVdTIENsb3VkRm9ybWF0aW9u` となる。
 
 ## 参考
 
