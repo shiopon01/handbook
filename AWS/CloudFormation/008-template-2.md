@@ -1,6 +1,6 @@
 # もっとテンプレート
 
-前回説明したセクションは `AWSTemplateFormatVersion` と `Resources` の2つ。最低限、これだけあればテンプレートとして成立する2つだ。
+前回テンプレートの記事で説明したセクションは `AWSTemplateFormatVersion` と `Resources` の2つ。最低限、これだけあればテンプレートとして成立する2つだ。
 
 ここでは、テンプレート（1）に引き続き、AWS CloudFormationで使用できるテンプレートの構文について説明する。CloudFormationのより詳しいテンプレートの書き方について求めているのであれば、この記事だ。 `Mappings` や `Conditions` についてさらに詳しい話は別の記事に書くかもしれない。
 
@@ -220,6 +220,25 @@ Resources:
 次テンプレートはS3バケットを作成し、そのS3バケット名をOutputsセクションで出力するテンプレートだ。出力された値はAWSマネジメントコンソールの対象スタック選択後、出力タブで確認することが出来る。
 
 ![スタックの出力](/img/aws-cf-template-2-002.png "スタックの出力")
+
+```json
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "MyS3Bucket": {
+      "Type": "AWS::S3::Bucket"
+    }
+  },
+  "Outputs": {
+    "S3BucketName": {
+      "Description": "Hello",
+      "Value": {
+        "Ref": "MyS3Bucket"
+      }
+    }
+  }
+}
+```
 
 ```yaml
 AWSTemplateFormatVersion: 2010-09-09

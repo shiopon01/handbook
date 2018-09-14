@@ -1,10 +1,10 @@
 # 組み込み関数 1
 
-さて、ここまででAWS CloudFormationを利用するまでの流れは一通り説明した。ここからは、CloudFormationのテンプレートをより柔軟にする、テンプレート内で使えるCloudFormationの組み込み関数を紹介する。
+さて、ここまででAWS CloudFormationを利用するまでの流れは一通り説明できたつもりだ。ここからは、CloudFormationのテンプレートをより柔軟にする、テンプレート内で使えるCloudFormationの組み込み関数を紹介する。
 
 組み込み関数を使用することで、パラメーターやリソースの値を取得したり（ `Ref` ）、事前に定義したマップの値を抜き出したり（ `Fn::FindInMap` ）、値をBase64に変換したり（ `Fn::Base64` ）、別のスタックでエクスポートされた値を取得したり（ `Fn::ImportValue` ）、様々なことが出来るようになる。
 
-次のリストは、CloudFormationに用意されている組み込み関数の全てだ。全てを利用することはほとんど無いが、どういう関数があるかを知っておくに越したことはない。
+次のリストは、CloudFormationに用意されている組み込み関数の全てだ。全てを利用することはほとんど無いが、どういう関数があるかを知っておくに越したことはない。全ての関数を簡単に説明していく。
 
 - Ref
 - Fn::GetAtt
@@ -26,35 +26,79 @@
 
 ## Ref
 
-CloudFormationのテンプレートで一番よく見かけ、よく使う組み込み関数はこの **Ref** だ。Refは指定したパラメーターの値、または指定したコンポーネントから作成されたAWSリソースの値を取り出すことができる。
+CloudFormationのテンプレートで一番よく見かけ、よく使う組み込み関数はこの **Ref** だ。Refは指定したParametersセクションの値、または指定したAWSリソースから決まった情報を取り出すことができる。
 
-次の例は、S3の名前をRefでパラメーターから取り出した値にし、テンプレートの出力にRefでAWSリソースから取り出したバケット名を指定するテンプレートだ。補足として、組み込み関数のほとんどは完全な形の構文と短縮した形の構文が存在しており、この例ではその両方を取り入れている。Refでは、 `Ref:` で指定するのが完全形の構文で、 `!Ref` で指定するのが短縮形の構文となる。主に利用するのは短縮形の構文だが、完全形の構文も覚えておいたほうが良い。
+```json
+{"Ref": "SampleResource"}
+```
+
+```yaml
+Ref: SampleResource
+```
+
+YAMLの場合、Refに限らず関数は短縮形を利用できる。多くの場合、後尾の `:` を削除し、先頭に `!` を追加する。Refはあまり変わらないが、他の関数では書き方が大きく変わる場合もあるので、またその時に説明する。言わずもがな、よく利用されているのは短縮形のほうだ。
+
+```yaml
+!Ref SampleResource
+```
+
+RefでParametersセクションから値を取得するなら、設定された値を取り出すだけなので分かりやすい。しかしAWSリソースから値を取り出す場合、 `Type` キーによって取り出すことのできる値が変わるためややこしい。例えばTypeが `AWS::S3::Bucket` だった場合、Refで取得できるのは作成されたバケットの名前だ。
+
+次のテンプレートでは引数で受け取った名前のS3バケットを生成し、スタックの出力としてそのバケットの名前を設定している。このように引数の値を取り出したり、AWSリソースの情報を取り出す際に、Refは使用されるのだ。
+
+```json
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "BucketName": {
+      "Type": "String",
+      "Default": "param-my-s3-bucket",
+      "Description": "It's a bucket name."
+    }
+  },
+  "Resources": {
+    "MyS3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": {
+          "Ref": "BucketName"
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "S3BucketName": {
+      "Description": "Hello",
+      "Value": {
+        "Ref": "MyS3Bucket"
+      }
+    }
+  }
+}
+```
 
 ```yaml
 AWSTemplateFormatVersion: 2010-09-09
-Parameters:
 
-  S3BucketName: # パラメータ
+Parameters:
+  BucketName:
     Type: String
-    Default: my-s3-bucket-1234567890
-    Description: Your S3 Bucket Name
+    Default: param-my-s3-bucket
+    Description: It's a bucket name.
 
 Resources:
-
-  MyS3Bucket: # コンポーネント（AWSリソース）
+  MyS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName:
-        Ref: S3BucketName # Ref（完全形の構文）でパラメーターの値を取得
+      BucketName: !Ref BucketName
 
 Outputs:
-
-  MyOutput:
-    Value: !Ref MyS3Bucket # Ref（短縮形の構文）でAWSリソースの値を取得
+  S3BucketName:
+    Description: Hello
+    Value: !Ref MyS3Bucket
 ```
 
-AWSリソースから取り出せる値はコンポーネントの `Type` によってそれぞれ全く違っていて、例えば `AWS::S3::Bucket` ではバケット名が返されるが、物によってはARNが返されるものなどがある。ほとんどはAWSサービス内部で特に利用するためのリソース名などが返されるが、テンプレートを作成する場合、このあたりは [Refのドキュメント](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-ref.html) を見ながら進めるしかない。
-
+どのTypeからどの値（名前やARN、何かのIDなど）が返されるかは推測が難しいため、実際にAWSリソースから値を取得する時は [Refのドキュメント](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-ref.html) の **リソースの戻り値の例** を見ながら進めるしかない。
 
 # Fn::GetAtt
 
