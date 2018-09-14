@@ -328,7 +328,109 @@ Fn::Sub: ${AWS::AccountId}
 ```
 
 ## Fn::ImportValue
+
+**Fn::ImportValue** は別のスタックがエクスポート（Outputsセクション）した値を取得するための組み込み関数だ。所謂 **クロススタック参照** と呼ばれるもので、長くなりすぎたテンプレートを分割する際などに利用できる。
+
+Fn::ImportValueを利用するならまず、別のスタックのOutputsセクションで値をエクスポートしなければならない。エクスポートにはそのリージョンで一意な名前を `Export` キーに付与してやる必要がある。
+
+次のテンプレートは作成したS3バケットの名前を `MyS3Bucket-Name` というエクスポート名でエクスポートするスタックのテンプレートだ。
+
+```json
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "MyS3Bucket": {
+      "Type": "AWS::S3::Bucket"
+    }
+  },
+  "Outputs": {
+    "S3BucketName": {
+      "Description": "Hello",
+      "Value": {"Ref": "MyS3Bucket"},
+      "Export": {"Name": "MyS3Bucket-Name"}
+    }
+  }
+}
+```
+
+```yaml
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+  MyS3Bucket:
+    Type: 'AWS::S3::Bucket'
+
+Outputs:
+  S3BucketName:
+    Description: Hello
+    Value: !Ref MyS3Bucket
+    Export:
+      Name: MyS3Bucket-Name
+```
+
+これで、`MyS3Bucket-Name` という名前でS3のバケットをエクスポートしたスタックが生まれた。
+
+![スタックの出力](/img/aws-cf-intrinsic-functions-001.png "スタックの出力")
+
+
 ## Fn::FindInMap
+
+**Fn::FindInMap** はMappingsセクションで宣言されたマッピングから値を取り出すための組み込み関数だ。
+
+```json
+{"Fn::FindInMap" : ["SampleMap", "FirstKey", "SecondKey"]}
+```
+
+```yaml
+Fn::FindInMap: ["SampleMap", "FirstKey", "SecondKey"]
+```
+
+短縮形はほとんど変わらない。同じようにキーを指定することで、値を取り出すことができる。
+
+```yaml
+!FindInMap ["SampleMap", "FirstKey", "SecondKey"]
+```
+
+次のテンプレートはMappingsセクションで宣言されたマッピング `RegionMap` を利用して、S3バケットの名前をリージョンによって変えるテンプレートだ。FirstKeyにはParamettersセクションから受け取った値か、よく擬似パラメーター（今回では `AWS::Region` ）が利用される。
+
+```json
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Mappings" : {
+    "RegionMap" : {
+      "us-east-1" : { "S3" : "us-east-1-bucket"},
+      "us-west-1" : { "S3" : "us-west-1-bucket"}
+    }
+  },
+  "Resources": {
+    "MyS3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": {
+          "Fn::FindInMap": ["RegionMap", {"Ref": "AWS::Region"}, "S3"]
+        }
+      }
+    }
+  }
+}
+```
+
+```yaml
+AWSTemplateFormatVersion: 2010-09-09
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      S3: us-east-1-bucket
+    us-west-1:
+      S3: us-west-1-bucket
+
+Resources:
+  MyS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !FindInMap ["RegionMap", !Ref AWS::Region, "S3"]
+```
 
 ## Fn::Base64
 
@@ -374,7 +476,6 @@ Fn::Select: ["1", ["Hello", "AWS", "CloudFormation"]]
 ## Fn::GetAZs
 ## Fn::Cidr
 
-
 ## 参考
 
-- [組み込み関数リファレンス](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference.html)
+- [組み込み関数リファレンス - AWS CloudFormation](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference.html)
