@@ -1,4 +1,4 @@
-# 組み込み関数 1
+# 組み込み関数
 
 さて、ここまででAWS CloudFormationを利用するまでの流れは一通り説明できたつもりだ。ここからは、CloudFormationのテンプレートをより柔軟にする、テンプレート内で使えるCloudFormationの組み込み関数を紹介する。
 
@@ -102,37 +102,69 @@ Outputs:
 
 # Fn::GetAtt
 
-RefはAWSリソースから決められた1つの値しか取れないため、本当に欲しい値（ARNなど）を取得できないことが多い。そこで利用できるのが **Fn::GetAtt** で、これはAWSリソースからRefで取れない値を取り出すための組み込み関数になる。これもRefに続いてテンプレート内で良く使われる。
+**Fn::GetAtt** はAWSリソースからRefで取り出せない値を取り出すための組み込み関数だ。Refについでよくテンプレート内で使用される。
 
-次の例は、作成したS3バケットの `名前` 、 `ドメイン名` 、 `Webサイトとして公開した場合のURL` を出力するテンプレートだ。GetAttにもRefと同じように短縮形があり、完全形の構文は `Fn::GetAtt:` で、短縮形の構文は `!GetAtt` となる。完全形の場合は引数に配列を渡すが、短縮形の場合はリソースと属性をドットで繋ぐだけで良い。Refと同じくこちらも短縮形が多く使われるが、AWSのサンプルでは完全形もよく見かけるので覚えておいたほうが良い。
+RefはAWSリソースから決められた1つの値しか取れないため、他に欲しい値があったとしてもそれを取り出せない。そこで利用できるのが **Fn::GetAtt** だ。AWSリソースの名前と取得したい属性を指定することで、目的の値を取り出すことが出来る。
+
+```json
+{"Fn::GetAtt": ["SampleResource", "attributeName"]}
+```
+
+```yaml
+Fn::GetAtt: ["SampleResource", "attributeName"]
+```
+
+YAML的な書き方として、こういう書き方も出来る。
+
+```yaml
+Fn::GetAtt:
+  - SampleResource
+  - attributeName
+```
+
+Fn::GetAttの短縮形は属性の指定が配列ではなくなり、メソッド的な呼び出し方を使用する。いろいろなテンプレートを見たが、Fn::GetAttは短縮しないパターン（完全形）の書き方をよく見かける。
+
+```yaml
+!GetAtt SampleResource.attributeName
+```
+
+参考までに、 `AWS::S3::Bucket` からRefで取り出せる値は `バケット名` だったが、Fn::GetAttでは `Arn` `DNS名` `IPv6 DNS名` `S3ウェブサイトURL` を取得できる。
+
+次のテンプレートはS3バケットを作成し、スタックの出力としてバケットの `Arn` を設定したテンプレートである。ここでは短縮形を使用する。
+
+```json
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "MyS3Bucket": {
+      "Type": "AWS::S3::Bucket"
+    }
+  },
+  "Outputs": {
+    "BucketArn": {
+      "Value": {
+        "Fn::GetAtt": ["MyS3Bucket", "Arn"]
+      }
+    }
+  }
+}
+```
 
 ```yaml
 AWSTemplateFormatVersion: 2010-09-09
-Resources:
 
+Resources:
   MyS3Bucket:
     Type: AWS::S3::Bucket
-    Properties:
-      BucketName: mybucket-123456789012
 
 Outputs:
-
-  BucketName:
-    Value: !Ref MyS3Bucket # バケット名はRefで取得
-
-  BucketDomainName:
-    Value:
-      Fn::GetAtt: # GetAtt（完全形の構文）でS3のドメイン名を取得
-        - MyS3Bucket
-        - DomainName
-
-  BucketWebsiteURL:
-    Value: !GetAtt MyS3Bucket.WebsiteURL # GetAtt（短縮形の構文）でWebサイトとして公開した場合のURLを取得
+  BucketArn:
+    Value: !GetAtt MyS3Bucket.Arn
 ```
 
-これもRefと同じようにAWSリソースから取り出せる値や属性名はコンポーネントの `Type` によって全く違っているため、テンプレートを作成する際は [Fn::GetAttのドキュメント](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-getatt.html) を見ながら進める。
+Refと同じように、Fn::GetAttで取り出せる値は `Type` によって事前に決まっている。 テンプレートを作成する時は [Fn::GetAttのドキュメント](https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-ref.html) の **属性** を見ながら進めなければならない。
 
-# Fn::Join
+## Fn::Join
 
 **Fn::Join** は区切り記号を挟んで文字列配列を連結するための組み込み関数だ。引数には2つの要素を含んだ配列を渡し、その配列の1つめの要素には区切り記号（文字列）、2つめの要素には連結させたい文字列配列を入れておく。Refの例で出たJoinでは、`"mybucket-"` と `!Ref AWS::AccountId` が `""（空文字列）` で結合されていることが分かる。
 
