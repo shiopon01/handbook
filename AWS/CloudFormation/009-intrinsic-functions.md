@@ -12,11 +12,11 @@
 - Fn::Sub
 - Fn::ImportValue
 - Fn::FindInMap
-- Fn::GetAZs
-- Fn::Cidr
+- Fn::Base64
 - Fn::Select
 - Fn::Split
-- Fn::Base64
+- Fn::GetAZs
+- Fn::Cidr
 - 条件関数
   - Fn::If
   - Fn::Or
@@ -329,10 +329,7 @@ Fn::Sub: ${AWS::AccountId}
 
 ## Fn::ImportValue
 ## Fn::FindInMap
-## Fn::GetAZs
-## Fn::Cidr
-## Fn::Select
-## Fn::Split
+
 ## Fn::Base64
 
 **Fn::Base64** は渡された文字列をBase64に変換する関数だ。
@@ -352,6 +349,31 @@ Fn::Base64: AWS CloudFormation
 ```
 
 ちなみに、この結果は `QVdTIENsb3VkRm9ybWF0aW9u` となる。
+
+## Fn::Select
+
+**Fn::Select** はリストから値を抜き出す関数だ。インデックスとリストを含む配列を渡すことで、目的の値を得ることができる。
+
+```json
+{"Fn::Select": ["1", ["Hello", "AWS", "CloudFormation"]]}
+```
+
+```yaml
+Fn::Select: ["1", ["Hello", "AWS", "CloudFormation"]]
+```
+
+この結果はどちらも `AWS` だ。短縮形もあまり変わらない形で使用できる。
+
+```yaml
+!Select ["1", ["Hello", "AWS", "CloudFormation"]]
+```
+
+ここに例のテンプレートは記述しないが、この後に説明する3つの関数 `Fn::Split` `Fn::GetAZs` `Fn::Cidr` は配列を返す組み込み関数のため、Fn::Selectとの併用が可能だ。
+
+## Fn::Split
+## Fn::GetAZs
+## Fn::Cidr
+
 
 ## 参考
 
