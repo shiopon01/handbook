@@ -1,8 +1,8 @@
-# テンプレート 2
+# もっとテンプレート
 
 前回説明したセクションは `AWSTemplateFormatVersion` と `Resources` の2つ。最低限、これだけあればテンプレートとして成立する2つだ。
 
-ここでは、テンプレート（1）に引き続き、AWS CloudFormationで使用できるテンプレートの構文について説明する。CloudFormationのより詳しいテンプレートの書き方について求めているのであれば、この記事だ。 `Mappings` や `Conditions` についてさらに詳しい話は別の記事に書く。
+ここでは、テンプレート（1）に引き続き、AWS CloudFormationで使用できるテンプレートの構文について説明する。CloudFormationのより詳しいテンプレートの書き方について求めているのであれば、この記事だ。 `Mappings` や `Conditions` についてさらに詳しい話は別の記事に書くかもしれない。
 
 今回もこのS3バケットを作成するだけのテンプレートを使ってセクションの説明を行う。
 
@@ -214,6 +214,26 @@ Resources:
 ```
 
 ## Outputs - 出力
+
+**Outputs** セクションでは、スタックが出力する値のことだ。バケットの名前、データベースのURL、その他AWSサービスのARNなど、CloudFormationで構築したインフラストラクチャを利用した次の処理に必要な値などを出力することができる。
+
+次テンプレートはS3バケットを作成し、そのS3バケット名をOutputsセクションで出力するテンプレートだ。出力された値はAWSマネジメントコンソールの対象スタック選択後、出力タブで確認することが出来る。
+
+![スタックの出力](/img/aws-cf-template-2-002.png "スタックの出力")
+
+```yaml
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  MyS3Bucket:
+    Type: 'AWS::S3::Bucket'
+
+Outputs:
+  S3BucketName:
+    Description: Hello
+    Value: !Ref MyS3Bucket
+```
+
+出力された値は他のスタックから `Fn::ImportValue` を使って参照することもできるが、詳しくは別の記事に記述する。ここでは、純粋なスタックからの出力のみを扱った。
 
 ## 参考
 
