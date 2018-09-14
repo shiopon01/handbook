@@ -188,7 +188,7 @@ Fn::Join:
     - CloudFormation
 ```
 
-この結果はどれも `Hello-AWS-CloudFormation` だ。Fn::Joinの短縮形はRefと同じように、ほとんど変わらない。GetAttと同じように `Fn::` を持つ組み込み関数なので、短縮形ではこれを省略できる。
+この結果はどれも `Hello-AWS-CloudFormation` だ。Fn::Joinの短縮形はRefと同じようにほとんど変わらない。Fn::GetAttと同じように `Fn::` を持つ組み込み関数なので、短縮形ではこれを省略できる。
 
 ```yaml
 !Join ["-", ["Hello", "AWS", "CloudFormation"]]
@@ -223,55 +223,99 @@ Resources:
         !Join ["-", [!Ref AWS::AccountId, "bucket"]]
 ```
 
-
-
 ## Fn::Sub
 
-**Fn::Sub** 特定の文字列を指定した値に置き換えることができる組み込み関数で、これもまた大変便利な関数だ。Refと同じくらいよく使う言っても過言ではない。Subでは空文字列や短い文字で結合するような複雑でないJoinを置き換えることも可能だが、結局はどちらも欲しい文字列を生成する同じ用途の関数なので、これは可読性で選択することになる。
+**Fn::Sub** は文字列内の特定の文字列を指定した値に置き換えることができる組み込み関数。
 
-Subには文字列とハッシュ型の変数マップを渡すことで目的の文字列を生成することができ、先述した、S3バケットの名前にJoinを使ってAWSアカウントIDを含める方法を `Fn::Sub:` で実現するとこうなる。変数は文字列内に `${変数名}` を含めることで埋め込むことが出来て、これは例えるならC言語のprintfに似ている。Subにも他の関数と同じく短縮形の構文があり、完全形の構文は `Fn::Sub:` で短縮形の構文が `!Sub` だ。
+この関数には使い方が2つあり、ひとつ目は `${name}` のように `${ }` で囲んだ文字列を含んだ文字列とハッシュ型の変数マップの要素を持った配列を渡すパターン。ふたつ目は、最初の文字列だけを渡し、ハッシュ型の変数マップは渡さないパターンだ。
 
-```yaml
-AWSTemplateFormatVersion: 2010-09-09
-Resources:
+ひとつ目の使い方は、C言語で言うprintfのようなものだと考えて良い。単純に文字列を置き換えるだけだ。
 
-  MyS3Bucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName:
-        Fn::Sub: # Sub（完全形の構文）で、変数 UniqueString を変数マップの値で置き換える
-          - mybuket-${UniqueString}
-          - UniqueString: !Ref AWS::AccountId
+```json
+{"Fn::Sub": [
+  "Hello ${name1} and ${name2}",
+  {
+    "name1": "World",
+    "name2":  "AWS"
+  }
+]}
 ```
 
-これで `BucketName` は `mybuket-123456789012（AWSアカウントID）` になる。変数マップのキーの値は今回は擬似パラメーターからAWSアカウントIDを取得しているが、実際はRefでなくても例えばただの文字列やJoinで結合した文字列など、最終的に出力されるものが文字列であるなら何でも良い。変数マップはハッシュであるので、 `{ UniqueString: !Ref AWS::AccountId }` という書き方も可能だ。
+```yaml
+Fn::Sub:
+  - Hello ${name1} and ${name2}
+  - name1: World
+    name2: AWS
+```
 
-Subには2つの利用方法（記述方法）があり、1つめは先述した例の文字列と変数マップを渡して目的の文字列を生成する方法。もうひとつは、文字列だけを渡す方法だ。Subに変数を含む文字列だけを渡すと、変数名（これはコンポーネント名になる）から自動で `Ref` を使った時のパラメーターやリソースの値、または `GetAtt` を使った時の属性に置き換えてくれる。これはES6などで言うところのテンプレート文字列のようなものだ。
+短縮形はRefと同じであまり変わらない。
 
-1. 文字列内の変数を変数マップのパラメーターでマッピングする使い方
-2. 文字列内の変数を既存のテンプレートパラメーター、リソースの値、リソースの属性で置き換えする使い方
+```yaml
+!Sub
+  - Hello ${name1} and ${name2}
+  - name1: World
+    name2: AWS
+```
 
-下の例は、短縮形の構文かつ、Subに文字列だけを渡す2の使い方でS3バケットを作成する例だ。Subを使うときはだいたいこの組み合わせ、この使い方で使われていて、1の使い方はあまり見かけない。Outputsの部分では、Subを使ったリソースの属性の取得方法を紹介する。Refの値は変数名に取得したいリソースの値のコンポーネント名を付けるだけで良いが、リソースの属性を取得する際は `.（ドット）` で属性名を繋げなければならない。
+この結果はどちらも `Hello World and AWS` となる。使い方にもよるが、簡単なFn::Joinなら置き換えることもできるので場面に合った使い方で記述しよう。
+
+ふたつ目の使い方は、前述したテンプレートの最初の文字列だけ渡す方法だ。文字列だけを渡すと、 `${ }` で囲われた文字列は組み込み関数 `Ref` をかけた形に変換される。囲う文字列をメソッド指定のような形にすることで組み込み関数 `Fn::GetAtt` をかけた形にも変換することができる。
+
+```json
+{"Fn::Sub": "My bucket is ${SampleResource}"}
+```
+
+```yaml
+Fn::Sub: My bucket is ${SampleResource}
+```
+
+短縮形はあまり変わらない。しかし、テンプレートで見かけるものはほとんどがこの状態（短縮形、文字列のみ）のFn::Subだ。
+
+```yaml
+!Sub My bucket is ${SampleResource}
+```
+
+次のテンプレートはS3バケットを作成し、Outputsセクションでバケットの名前とバケットのARNを出力するテンプレートだ。バケットの名前ではハッシュを渡す形のFn::Sub、ARNでは文字列のみ渡す形のFn::Subを使用している。
+
+```json
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources": {
+    "MyS3Bucket": {
+      "Type": "AWS::S3::Bucket"
+    }
+  },
+  "Outputs": {
+    "BucketName": {
+      "Value": {
+        "Fn::Sub": [
+          "${BucketName}",
+          {"BucketName": {"Ref": "MyS3Bucket"}}
+        ]
+      }
+    },
+    "BucketArn": {
+      "Value": {"Fn::Sub": "${MyS3Bucket.Arn}"}
+    }
+  }
+}
+```
 
 ```yaml
 AWSTemplateFormatVersion: 2010-09-09
-Resources:
 
+Resources:
   MyS3Bucket:
     Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub mybuket-${AWS::AccountId} # Sub（短縮形の構文）の2の使い方でアカウントIDを取得（Refの代わり）
 
 Outputs:
+  BucketName:
+    Value: !Sub
+      - ${BucketName}
+      - BucketName: !Ref MyS3Bucket
 
-  BucketDomainName:
-    Value: !Sub ${MyS3Bucket.DomainName} # Sub（短縮形の構文）の2の使い方でS3のドメイン名を取得（GetAttの代わり）
-
-  BucketWebsiteURL:
-    Value:
-      !Sub # Sub（短縮形の構文）の1の使い方で、WebsiteURLを取得（GetAttの代わり）
-        - ${WebsiteURL}
-        - { WebsiteURL: !GetAtt MyS3Bucket.WebsiteURL }
+  BucketArn:
+    Value: !Sub ${MyS3Bucket.Arn}
 ```
 
 ## Fn::ImportValue
