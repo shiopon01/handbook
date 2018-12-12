@@ -1,3 +1,0 @@
-# StatefulSet
-
-# WIP
