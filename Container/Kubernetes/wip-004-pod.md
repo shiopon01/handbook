@@ -2,11 +2,11 @@
 
 ## 仕組み
 
-ポッドとは、1つ以上のコンテナを内包し、ストレージ（ `Volume` ）や一意のIPアドレスをカプセル化した1つのユニットのことを言う。Kubernetesはコンテナを直接管理せず、ポッドを管理することでコンテナも管理した気になっている。
+ポッドとは、1つ以上のコンテナを内包し、ストレージ（ `Volume` ）や一意のIPアドレスをカプセル化した1つのユニットのことを言う。Kubernetesによってぽこぽこ生成される。Kubernetesはコンテナを直接管理せず、ポッドを管理することでコンテナも管理した気になっている。
 
 1つのポッドインスタンスは密結合なコンテナのプロセス群で、このコンテナは必ず同一のホスト上で稼働し、共同スケジュールで動き、共有されたコンテキスト（Linux ネームスペース等）で実行されている。ポッド内のコンテナ同士はIPアドレスとポートスペースを共有しているためlocalhostを介して互いに通信が出来るが、異なるポッド間だとIPアドレスが異なるので標準のプロセス間通信では通信できない。
 
-ポッド内のあるコンテナがエラー等でダウン際は、同一ポッド内にある全てのコンテナが全て削除されるようになっている。そのため、依存関係などで一緒に消滅してほしいコンテナやプロセスを同一ポッドにまとめるのが基本となる。
+ポッド内のあるコンテナがエラー等でダウンした際は、同一ポッド内にある全てのコンテナが全て削除されるようになっている。そのため、依存関係などで一緒に消滅してほしいコンテナやプロセスを同一ポッドにまとめるのが基本となる。
 
 ## ユースケース
 
@@ -23,5 +23,58 @@
 このように、ポッドはほとんど全てのKubernetesの仕事に結びつく、大変に重要な概念だ。
 
 
-## YAML
+## Kubernetes YAML
 
+テンプレートからポッドを生成する例をいくつか紹介する。
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+spec:
+  containers:
+  - name: myapp-container
+    image: busybox
+    command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
+```
+
+
+
+コンテナを2つ以上持つポッドは、 `spec.containers` にコンテナの設定を増やすことで生成できる。次のテンプレートからポッドを生成して `get pods` で確認してみよう。
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-double
+  labels:
+    app: myapp
+spec:
+  containers:
+  - name: container-1
+    image: busybox
+    command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
+  - name: container-2
+    image: busybox
+    command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
+```
+
+```
+$ kubectl apply -f pod-double.yml
+pod/pod-double-container created
+
+$ kubectl get pods
+NAME                   READY     STATUS    RESTARTS   AGE
+pod-double-container   2/2       Running   0          17s
+```
+
+READYの部分が `2/2` となっているが、これがコンテナが2つ存在している状態である。片方のコンテナが落ちるともう片方のコンテナも落ちるはずだ。
+
+
+
+
+
+get pods
