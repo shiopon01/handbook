@@ -1,4 +1,4 @@
-# Config Template
+# Config template
 
 Kubernetesのオブジェクトは `yaml` のテンプレートファイルから作成できる。このテンプレートファイルが初心者にとっての大きな壁となっていることは間違いない。ここはそんなYAMLの書き方を学び、多少なりともKubernetes YAMLに対する抵抗を無くすことを目標とする。
 

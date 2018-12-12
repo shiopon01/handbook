@@ -1,4 +1,4 @@
-# minikube
+# Minikube setup
 
 ## 概要
 
