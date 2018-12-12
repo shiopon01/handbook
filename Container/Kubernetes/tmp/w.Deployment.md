@@ -67,3 +67,89 @@ Deploymentではテンプレートの `spec.template` （コンテナイメー�
 kubectl rollout history deployment nginx-deployment
 kubectl rollout undo deployment nginx-deployment # 直前のバージョンへ
 ```
+
+
+
+
+--minikube--
+
+### deployment
+
+
+
+```
+docker build -t hello-node:v1 .
+```
+
+ビルドしたdocker imageを使ってデプロイメントを作成する。デプロイメントは、イメージからポッドを作ることができる。
+
+```
+kubectl run hello-node --image=hello-node:v1 --port=8080 --image-pull-policy=Never
+```
+
+```
+$ kubectl get deployments
+NAME         DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+hello-node   1         1         1            1           15s
+
+$ kubectl get pods
+NAME                          READY     STATUS    RESTARTS   AGE
+hello-node-57c6b66f9c-fb2wf   1/1       Running   0          2m
+```
+
+クラスタイベントやkubectl設定
+
+```
+kubectl get events
+kubectl config view
+```
+
+---
+
+デフォルトでは、PodはKubernetesクラスタ内部のIPアドレスからしかアクセスできない。サービスを利用してKubernetes仮想ネットワークに外部からアクセスする。（ポッドの公開）
+
+```
+kubectl expose deployment hello-node --type=LoadBalancer
+```
+
+```
+$ kubectl get services
+NAME         TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)          AGE
+hello-node   LoadBalancer   10.104.61.79   <pending>     8080:31380/TCP   20s
+kubernetes   ClusterIP      10.96.0.1      <none>        443/TCP          1h
+```
+
+`--type=LoadBalancer` はサービスをクラスタ外に公開することを示している。ロードバランサをサポートするクラウドプロバイダでは、アクセスするために外部IPアドレスがプロビジョニングできる！（AWSのELBとか）
+
+minikubeでは `minikube service` コマンドを介してサービスにアクセスできる。（ブラウザが立ち上がる）
+
+```
+minikube service hello-node
+```
+
+ポッドへのアクセスログを見ることも可能
+
+```
+kubectl logs hello-node-57c6b66f9c-fb2wf(ポッドNAME)
+```
+
+
+```
+docker build -t hello-node:v2 .
+```
+
+```
+$ kubectl set image deployment/hello-node hello-node=hello-node:v2
+deployment.extensions/hello-node image updated
+```
+
+```
+$ minikube service hello-node
+Opening kubernetes service default/hello-node in default browser...
+```
+
+```
+minikube stop
+eval $(minikube docker-env -u)
+minikube delete
+```
