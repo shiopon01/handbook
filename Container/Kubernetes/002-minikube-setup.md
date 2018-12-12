@@ -2,9 +2,9 @@
 
 ## 概要
 
-Minikubeとは
+MinikubeはKubernetesをローカルで簡単に実行できるツールのことで、Kubernetesをちょっと触ってみたいとか練習時はこれが有用だ。詳しくは[公式リポジトリ](https://github.com/kubernetes/minikube)参照。
 
-Minikubeのチュートリアルなんてもう山ほど転がっていると思うが、ここではできるだけ分かりやすくMinikubeのセットアップと操作を解説する。
+Minikubeのチュートリアルなんてもう山ほど転がっていると思うが、ここではできるだけ分かりやすくMinikubeのセットアップを解説する。
 
 
 ## インストール
@@ -126,22 +126,61 @@ http://192.168.99.100:30000
 
 ![dashboard](img/dashboard.png)
 
+
 ## コンテナの確認
 
-ここまで動作させて気になるのが `クラスター > ノード > minikube` のタブで見ることができるポッド（コンテナの集合体）がどのようにして動かされているのかだ。ホストで `docker ps` を実行してもkubernetesが動いているのはVM上のため実際にコンテナを確認できない。
+ここまで動作させて気になるのが `クラスター > ノード > minikube` のタブで見ることができるポッド（コンテナの集合体）がどのようにして動かされているのかだ。ホストで `docker ps` を実行してもMinikubeが動いているのはVM上のため実際にコンテナを確認することは出来ない。
 
-こんなに時は、minikubeが動いているVMのDockerデーモン（コマンド）を利用できるコマンド `eval $(minikube docker-env)` が役に立つ。既存のDockerコマンドの設定を書き換え、VM内のDockerの出力結果を得られる、というものだ。（元に戻すときは `-u` オプション）
+こんなに時は、Minikubeが動いているVMのDockerデーモン（コマンド）を利用できるコマンド `eval $(minikube docker-env)` が役に立つ。既存のDockerコマンドの設定を書き換え、VM内のDockerの出力結果を得られる、というものだ。（元に戻すときは `-u` オプション）
 
 ```
 $ eval $(minikube docker-env)
 $ eval $(minikube docker-env -u)
 ```
 
-`docker ps` の結果では複数のコンテナが起動していて、 `kube-apiserver` 、 `kube-controller-manager` 、 `kube-scheduler` が動いているのでこのノードがマスターノードであることが確認できる。（見難いけど、 `docker ps` のIMAGEかNAMESの名前）
+`docker ps` の結果では複数のコンテナが起動していて、 `kube-apiserver` 、 `kube-controller-manager` 、 `kube-scheduler` が動いているのでこのノードがマスターノードであることが確認できる。（見難いけど、 `docker ps` のIMAGEかNAMESで確認可能）
+
+```
+$ docker ps --format '{{.Image}}\t{{.Names}}'
+k8s.gcr.io/k8s-dns-sidecar-amd64	k8s_sidecar_kube-dns-86f4d74b45-8dq2v_kube-system_bdd19471-fd1e-11e8-9fce-08002750ed9b_0
+k8s.gcr.io/heapster-grafana-amd64	k8s_grafana_influxdb-grafana-krrwn_kube-system_bee37f27-fd1e-11e8-9fce-08002750ed9b_0
+k8s.gcr.io/k8s-dns-dnsmasq-nanny-amd64	k8s_dnsmasq_kube-dns-86f4d74b45-8dq2v_kube-system_bdd19471-fd1e-11e8-9fce-08002750ed9b_0
+gcr.io/k8s-minikube/storage-provisioner	k8s_storage-provisioner_storage-provisioner_kube-system_bf86b588-fd1e-11e8-9fce-08002750ed9b_0
+k8s.gcr.io/heapster-amd64	k8s_heapster_heapster-wpbbh_kube-system_bedb7500-fd1e-11e8-9fce-08002750ed9b_0
+k8s.gcr.io/heapster-influxdb-amd64	k8s_influxdb_influxdb-grafana-krrwn_kube-system_bee37f27-fd1e-11e8-9fce-08002750ed9b_0
+k8s.gcr.io/kubernetes-dashboard-amd64	k8s_kubernetes-dashboard_kubernetes-dashboard-5498ccf677-jv5ll_kube-system_bed158ed-fd1e-11e8-9fce-08002750ed9b_0
+k8s.gcr.io/kube-proxy-amd64	k8s_kube-proxy_kube-proxy-7shh2_kube-system_bdcc5b4c-fd1e-11e8-9fce-08002750ed9b_0
+k8s.gcr.io/k8s-dns-kube-dns-amd64	k8s_kubedns_kube-dns-86f4d74b45-8dq2v_kube-system_bdd19471-fd1e-11e8-9fce-08002750ed9b_0
+k8s.gcr.io/pause-amd64:3.1	k8s_POD_storage-provisioner_kube-system_bf86b588-fd1e-11e8-9fce-08002750ed9b_0
+k8s.gcr.io/pause-amd64:3.1	k8s_POD_heapster-wpbbh_kube-system_bedb7500-fd1e-11e8-9fce-08002750ed9b_0
+k8s.gcr.io/pause-amd64:3.1	k8s_POD_influxdb-grafana-krrwn_kube-system_bee37f27-fd1e-11e8-9fce-08002750ed9b_0
+k8s.gcr.io/pause-amd64:3.1	k8s_POD_kubernetes-dashboard-5498ccf677-jv5ll_kube-system_bed158ed-fd1e-11e8-9fce-08002750ed9b_0
+k8s.gcr.io/pause-amd64:3.1	k8s_POD_kube-proxy-7shh2_kube-system_bdcc5b4c-fd1e-11e8-9fce-08002750ed9b_0
+k8s.gcr.io/pause-amd64:3.1	k8s_POD_kube-dns-86f4d74b45-8dq2v_kube-system_bdd19471-fd1e-11e8-9fce-08002750ed9b_0
+k8s.gcr.io/kube-scheduler-amd64	k8s_kube-scheduler_kube-scheduler-minikube_kube-system_2acb197d598c4730e3f5b159b241a81b_0
+k8s.gcr.io/kube-apiserver-amd64	k8s_kube-apiserver_kube-apiserver-minikube_kube-system_85bc41416e6cd3f7d13a656ca8a2c4e0_0
+k8s.gcr.io/kube-controller-manager-amd64	k8s_kube-controller-manager_kube-controller-manager-minikube_kube-system_c76db6c34089cf20cc4b22225818b39a_0
+k8s.gcr.io/kube-addon-manager	k8s_kube-addon-manager_kube-addon-manager-minikube_kube-system_3afaf06535cc3b85be93c31632b765da_0
+k8s.gcr.io/etcd-amd64	k8s_etcd_etcd-minikube_kube-system_8cd2374a5c501ee7cfa128d8934ec393_0
+k8s.gcr.io/pause-amd64:3.1	k8s_POD_kube-controller-manager-minikube_kube-system_c76db6c34089cf20cc4b22225818b39a_0
+k8s.gcr.io/pause-amd64:3.1	k8s_POD_kube-apiserver-minikube_kube-system_85bc41416e6cd3f7d13a656ca8a2c4e0_0
+k8s.gcr.io/pause-amd64:3.1	k8s_POD_kube-addon-manager-minikube_kube-system_3afaf06535cc3b85be93c31632b765da_0
+k8s.gcr.io/pause-amd64:3.1	k8s_POD_etcd-minikube_kube-system_8cd2374a5c501ee7cfa128d8934ec393_0
+k8s.gcr.io/pause-amd64:3.1	k8s_POD_kube-scheduler-minikube_kube-system_2acb197d598c4730e3f5b159b241a81b_0
+```
 
 
+## 停止と削除
 
+Minikube環境を削除するときは `minikube stop` 、 `minikube delete` を使用する。
 
+```
+$ minikube stop
+Stopping local Kubernetes cluster...
+Machine stopped.
+
+$ minikube delete
+```
 
 ## 参考
 
