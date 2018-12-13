@@ -1,0 +1,80 @@
+# Pod
+
+## 仕組み
+
+ポッドとは、1つ以上のDockerコンテナを内包し、ストレージ（ `Volume` ）や一意のIPアドレスも含めてカプセル化された1つのユニットのことを言う。Kubernetesによって特にぽこぽこ生成されるオブジェクト。Kubernetesはコンテナを直接管理せず、ポッドを管理することでコンテナも管理した気になっている。
+
+1つのポッドインスタンスは密結合なコンテナのプロセス群で、このコンテナは必ず同一のホスト上で稼働し、共同スケジュールで動き、共有されたコンテキスト（Linux ネームスペース等）で実行されている。ポッド内のコンテナ同士はIPアドレスとポートスペースを共有しているためlocalhostを介して互いに通信が出来るが、異なるポッド間だとIPアドレスが異なるので標準のプロセス間通信では通信できない。
+
+ポッド内のあるコンテナがエラー等でダウンした際は、同一ポッド内にある全てのコンテナが全て削除されるようになっている。そのため、依存関係などで一緒に消滅してほしいコンテナやプロセスを同一ポッドにまとめるのが基本となる。
+
+## ユースケース
+
+ポッドは自分でも作成できるが、主にコントローラーオブジェクト（レプリカセット、ジョブなど）によって生成される。
+
+特によく使われるのは、レプリカセットを使ったスケーリングだ。ポッドはアプリケーションの配備と管理を簡素化していて簡単に生成できるので、レプリケーションの数を指定したレプリカセットが大量にポッドを生成することでスケールアウトを実現している。
+
+
+また、この仕組みのおかげでデプロイメントによるローリングアップデートも容易に行える。デプロイメント、レプリカセット、サービスなどと組み合わせて大量のポッドを上手く使うことで、多くの機能を実現できる。
+
+
+他にも、ポッドはジョブやデーモンセットから作成されることもある。ポッドを生成するコントローラーオブジェクトによってそれぞれポッドの役割は違っていて、例えばレプリカセットならWebサーバー、APIサーバーなどを起動するポッドが生成される。デーモンセットは各ノードからデータを収集してデータストアに保存する処理などを行うポッドが生成され、ジョブでは1度きりの処理を行うポッドを生成する。
+
+このように、ポッドはほとんど全てのKubernetesの仕事に結びつく、大変に重要な概念だ。
+
+
+## Kubernetes YAML
+
+テンプレートからポッドを生成する例をいくつか紹介する。
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+spec:
+  containers:
+  - name: myapp-container
+    image: busybox
+    command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
+```
+
+
+
+コンテナを2つ以上持つポッドは、 `spec.containers` にコンテナの設定を増やすことで生成できる。次のテンプレートからポッドを生成して `get pods` で確認してみよう。
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-double
+  labels:
+    app: myapp
+spec:
+  containers:
+  - name: container-1
+    image: busybox
+    command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
+  - name: container-2
+    image: busybox
+    command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
+```
+
+```
+$ kubectl apply -f pod-double.yml
+pod/pod-double-container created
+
+$ kubectl get pods
+NAME                   READY     STATUS    RESTARTS   AGE
+pod-double-container   2/2       Running   0          17s
+```
+
+READYの部分が `2/2` となっているが、これがコンテナが2つ存在している状態である。片方のコンテナが落ちるともう片方のコンテナも落ちるはずだ。
+
+
+
+
+
+get pods

@@ -370,7 +370,7 @@ Outputs:
 
 これで、`MyS3Bucket-Name` という名前でS3のバケットをエクスポートしたスタックが生まれた。
 
-![スタックの出力](/img/aws-cf-intrinsic-functions-001.png "スタックの出力")
+![スタックの出力](img/aws-cf-intrinsic-functions-001.png "スタックの出力")
 
 
 ## Fn::FindInMap

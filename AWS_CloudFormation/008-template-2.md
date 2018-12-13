@@ -97,7 +97,7 @@ Resources:
 
 Parametersを設定していた場合、スタックの作成でパラメーターの値を設定できる。このテンプレートであればパラメーター `BucketName` があるので、Webでの作成ではこのパラメーターを入力するテキストボックスが表示されている。
 
-![テンプレートの引数](/img/aws-cf-template-2-001.png "テンプレートの引数")
+![テンプレートの引数](img/aws-cf-template-2-001.png "テンプレートの引数")
 
 実際に使用するキーのほとんどは `Type` `Default` `Description` の3つ。バリデーションによって、 `AllowedValues` `MaxValue` `MinLength` などを増やそう。
 
@@ -219,7 +219,7 @@ Resources:
 
 次テンプレートはS3バケットを作成し、そのS3バケット名をOutputsセクションで出力するテンプレートだ。出力された値はAWSマネジメントコンソールの対象スタック選択後、出力タブで確認することが出来る。
 
-![スタックの出力](/img/aws-cf-template-2-002.png "スタックの出力")
+![スタックの出力](img/aws-cf-template-2-002.png "スタックの出力")
 
 ```json
 {
