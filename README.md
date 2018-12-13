@@ -17,3 +17,7 @@
     - article.md
   - Rails/
     - article.md
+
+## その他
+
+本来 `docs.shioporu.com` で更新していたものを書き直してGitHubに更新中。
