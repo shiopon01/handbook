@@ -31,6 +31,17 @@ AWSを初めて使う時に一番困ったのは、まあまあ分かりづら�
 - AWS_DynamoDB/
   - 001-article.md
 - Ruby/
+<<<<<<< HEAD
   - 001-article.md
 
 **tmp** フォルダは記述途中のもの、またはGitBook管理していた頃の残骸。
+=======
+  - Features/
+    - article.md
+  - Rails/
+    - article.md
+
+## その他
+
+本来 `docs.shioporu.com` で更新していたものを書き直してGitHubに更新中。
+>>>>>>> master
