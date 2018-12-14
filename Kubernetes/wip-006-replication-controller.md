@@ -9,6 +9,7 @@
 
 そんなポッドを水平に複数インスタンス生成し、可用性をできるだけ高く保つための仕組みがレプリケーションコントローラーだ。
 
+## 機能
 
 レプリケーションコントローラーでは、予め設定しておいた `レプリカ` の数だけポッドを起動する。ポッドのインスタンスがこのレプリカ数より多いと自動的に削除されて調整されるし、少ないとポッドが追加されて調整される。 `kubectl patch` などでポッドの数を変更した場合も同様で、変更時にポッドの数も調整される。
 
@@ -18,23 +19,33 @@
 
 ## Kubernetes YAML
 
+テンプレートからレプリケーションコントローラーを生成する例を紹介する。ドキュメントは[こちら](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#replicationcontroller-v1-core)。
+
+（公式ドキュメントにもあるように、ほとんどの場合で `Deployment` と `ReplicaSet` の使用を推奨されているが…。）
+
+次のテンプレートはポッドを3つ生成・維持するNginxを立ち上げるレプリケーションコントローラーを生成するテンプレート。 **.spec.selector** フィールドはこのレプリケーションコントローラーが管理するポッドを特定するためのもので、ポッドのラベル **.spec.template.metadata.labels** と同じものを設定しなければならない。（このラベルは重複させるべきではない）
+
 ```yaml
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: redis-master
+  name: myapp
 spec:
-  replicas: 3 # レプリカ数の指定 この数だけPod数を維持
+  # レプリカ数の指定。この数だけPod数を維持
+  replicas: 3
   selector:
-    app: redis
+    app: my-nginx
   template:
     metadata:
       labels:
-        app: redis
+        app: my-nginx
     spec:
       containers:
-        - name: redis-master
-          image: redis:2.8.23
-          ports:
-            - containerPort: 6379
+      - name: nginx
+        image: nginx
+```
+
+```
+$ kubectl apply -f rc.yml
+replicationcontroller/myapp created
 ```
