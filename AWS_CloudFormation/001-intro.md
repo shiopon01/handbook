@@ -10,7 +10,7 @@ AWS CloudFormationは、AWS上のインフラストラクチャーをテキス�
 
 CloudFormationの言う共通言語とは、決められた書式のJSONまたはYAML形式のテキストファイルのことを指す。作成したテキストファイルはCloudFormationが解釈し、そのテキストファイルに紐付けられたEC2インスタンスやLambda関数を生成する。生成したインフラストラクチャリソースは一括更新、一括削除などが可能だ。
 
-![CloudFormationイメージ](/img/aws-cf-intro-001.png "CloudFormationイメージ")
+![CloudFormationイメージ](img/aws-cf-intro-001.png "CloudFormationイメージ")
 
 インフラストラクチャーをテキストファイルとして管理することのメリットはいくつかあるが、大きな部分で言うとやはり、CloudFormationを介すとは言えインフラストラクチャーそのものをバージョン管理することができるという点だ。また、環境の再現が容易なために、知識を持たなくともベストプラクティスなインフラストラクチャを構築できるところも今風で良い。
 

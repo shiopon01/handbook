@@ -10,7 +10,7 @@ CloudFormationはテキスト形式のテンプレートファイルからAWSリ
 
 次の図は、テンプレートファイルからスタックを作成し、AWSリソースを作成するまでのイメージ。
 
-![Stackイメージ](/img/aws-cf-stack-001.png "Stackイメージ")
+![Stackイメージ](img/aws-cf-stack-001.png "Stackイメージ")
 
 1テンプレートファイル1スタックという決まりがあるが、1度のスタック作成で1つのスタックしか作成できないわけではない。
 
@@ -18,6 +18,6 @@ CloudFormationはテキスト形式のテンプレートファイルからAWSリ
 
 次の図は、スタックをネストするイメージ。ここではネストしたスタックとして、 `Cognito UserPool` を作成するスタックと、 `Lambda Function` と `API Gateway RestAPI` を作成するスタックを作成している。また自らも、 `DynamoDB Table` を作成している。
 
-![Nestイメージ](/img/aws-cf-stack-002.png "Nestイメージ")
+![Nestイメージ](img/aws-cf-stack-002.png "Nestイメージ")
 
 一番左のスタックを削除することで、ネストされたスタックと紐付くAWSリソースも全て削除される。ネストされたスタックのみの削除も可能だが、整合性が取れなくなる可能性もあるためAWSでは推奨されていない。

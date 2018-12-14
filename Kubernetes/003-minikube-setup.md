@@ -169,6 +169,14 @@ k8s.gcr.io/pause-amd64:3.1	k8s_POD_etcd-minikube_kube-system_8cd2374a5c501ee7cfa
 k8s.gcr.io/pause-amd64:3.1	k8s_POD_kube-scheduler-minikube_kube-system_2acb197d598c4730e3f5b159b241a81b_0
 ```
 
+## 情報の閲覧
+
+クラスタイベントやkubectlの設定は次のコマンドで見ることが出来る。
+
+```
+$ kubectl get events
+$ kubectl config view
+```
 
 ## 停止と削除
 
@@ -181,6 +189,7 @@ Machine stopped.
 
 $ minikube delete
 ```
+
 
 ## 参考
 
