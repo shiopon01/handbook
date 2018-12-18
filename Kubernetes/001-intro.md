@@ -10,10 +10,10 @@ Kubernetesは自動デプロイ、スケーリング等を効率的に行うた�
 
 ファイル先頭の番号順に読み進めていくことを推奨するが、必ずその順番で読むことは強制しない。いちおう、理解しやすいであろう順番で記述しているつもりである。
 
-- [intro](001-intro.md)
-- [basic information](002-basic-information.md)
+- [Intro](001-intro.md)
+- [Basic information](002-basic-information.md)
 - [Minikube setup](003-minikube-setup.md)
-- [config template](004-config-template.md)
+- [Config template](004-config-template.md)
 
 ## ペーシックオブジェクト
 

@@ -88,7 +88,7 @@ Kubernetesに現れるオブジェクトの解説。Kubernetesはシステムや
 
 多くのKubernetesの機能はポッドを生成することで仕事をするので、Kubernetesは実質ポッドの集合と言っても良い。（たぶん）
 
-- [Pod Overview - Kubernetes](https://kubernetes.io/docs/concepts/workloads/pods/pod-overview/)
+- [Pod](005-pod.md)
 
 ### サービス（Service）
 
