@@ -18,6 +18,7 @@ Kubernetesを構成するノードには2種類あり、それぞれ役割が違
 
 - [Kubernetes Components](https://kubernetes.io/docs/concepts/overview/components/)
 
+
 ### マスターノード（Kubernetes Master）
 
 Kubernetesクラスターの望ましい状態を維持するためのノードで、1つのクラスターには必ず1つ以上のマスターノードが存在する。いわばKubernetesクラスターの司令塔である。
@@ -30,15 +31,20 @@ Kubernetesクラスターの望ましい状態を維持するためのノード�
 
 #### kube-apiserver
 
-a
+Kubernetesのリソース管理を行うAPIを提供するプロセス。kubectlはこのプロセスと通信を行っている。
+
+全てのプロセスはこのAPIサーバーへのアクセスを通して操作を行う。そのため、認証・認可の仕組みも `kube-apiserver` に備えられている。
 
 #### kube-controller-manager
 
-a
+各種コントローラーオブジェクトを起動するマネージャー。
 
 #### kube-scheduler
 
-a
+新しいポッドをどのノードに作成するかの割り当てを行うスケジューラー。
+
+`kube-apiserver` のAPIを使ってリソースの状態監視を行い、ポッドとノードを紐付ける役割を持つ。
+
 
 ### ワーカーノード（Kubernetes Nodes）
 
@@ -50,11 +56,15 @@ Dockerによってアプリケーションコンテナが実行されるノー�
 
 #### kubelet
 
-各ワーカーノードで動作する、ポッド、コンテナ、イメージ、ボリュームなどの主要なリソースを管理する役割を担うプロセス。さまざまな仕組みで（主に `kube-apiserver` を介して）PodSpecを取得し、それらのPodSpecに記述されているコンテナが正常であるかなどを確認する機能も担う。
+ノードのメイン処理であるポッド、コンテナ、イメージ、ボリュームなどの主要なリソースを管理する役割を担うプロセス。
+
+さまざまな仕組みで（主に `kube-apiserver` を介して）PodSpecを取得し、それらのPodSpecに記述されているコンテナが正常であるかなどを確認する機能も担う。
 
 #### kube-proxy
 
-各ワーカーノードで動作する、ネットワークプロキシとロードバランサのプロセス。 `Service` が持つ仮想的なCluster IPを転送するなどの役割を持ち、内部的にiptablesを保有してIPアドレスの管理を行う。
+ネットワークプロキシとロードバランサのプロセス。
+
+`Service` が持つ仮想的なCluster IPを転送するなどの役割を持ち、内部的にiptablesを保有してIPアドレスの管理を行う。
 
 #### flanneld
 
