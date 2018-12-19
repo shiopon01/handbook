@@ -26,7 +26,7 @@ kube-system   Active    5d
 
 #### kube-system
 
-Kubernetesが作成するコンポーネントが入る。Kubenetes Materの `kube-apiserver` `kube-controller-manager` `kube-scheduler` 、Nodesの `kube-proxy` などがこのネームスペース内でポッドとして動作している。
+Kubernetesが作成するコンポーネントが入る。Kubenetes Masterの `kube-apiserver` `kube-controller-manager` `kube-scheduler` 、Nodesの `kube-proxy` などがこのネームスペース内でポッドとして動作している。
 
 ## 機能
 

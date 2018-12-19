@@ -3,49 +3,120 @@
 
 ## 概要
 
-レプリケーションコントローラーは複数のポッドを生成・維持するコントローラーオブジェクトのひとつ。現在は次世代の機能としてレプリカセットが提供されているので、レプリケーションコントローラーはあまり使うべきではないかもしれない。
+レプリケーションコントローラーはコントローラーオブジェクトのひとつで、指定された数のポッドが実行されていることを確実にするためのオブジェクト。主に水平分散を行う際に使用され、ローリングアップデートも実装されているのでそのままアプリケーションのアップデートも容易に行うことが出来る。
 
-ポッドを単体で作成した場合でも自動的な再起動は行われるが、実運用上、ポッドを単一インスタンスで使っても旨味は少ない。単一ポッドの場合、例えばポッドの再起動時はポッドの処理が止まってしまうし、何かの情報を処理しきれなくなった場合も実質詰みだ。
+現在は次世代の機能としてレプリカセットが提供されているので、レプリケーションコントローラーを使うことはあまり推奨されていない。
 
-そんなポッドを水平に複数インスタンス生成し、可用性をできるだけ高く保つための仕組みがレプリケーションコントローラーだ。
+- [ReplicationController - Kubernetes](https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/)
 
-## 機能
+> ReplicaSetとDeploymentを使ってください
 
-レプリケーションコントローラーでは、予め設定しておいた `レプリカ` の数だけポッドを起動する。ポッドのインスタンスがこのレプリカ数より多いと自動的に削除されて調整されるし、少ないとポッドが追加されて調整される。 `kubectl patch` などでポッドの数を変更した場合も同様で、変更時にポッドの数も調整される。
+## 仕組みと役割
 
-このような機能を実現するため、レプリケーションコントローラーはポッドを常に監視して生存確認を行うセルフヒーリング機能を持っている。（ポッドがどのノードで生成されるかは、生成時にKubernetesが決定する）
+レプリケーションコントローラーの主な機能は、予め指定しておいた `レプリカ` の数だけポッドを起動することを保証することだ。
 
-また、レプリケーションコントローラーはローリングアップデートもサポートしている。レプリケーションコントローラーが更新された時、Kubernetesは古いレプリケーションコントローラーから新しいレプリケーションコントローラーにポッドを1つずつ置き換えていくことでローリングアップデートを実現している。レプリカ数（ポッド数）が0になったレプリケーションコントローラーは削除される。（ `kubectl rolling-update` ）
+あるレプリケーションコントローラーに紐付くポッドの数が指定されたレプリカ数より多くなった時、レプリケーションコントローラーは増えすぎたポッドを削除してレプリカ数とポッドの数を合わせる。逆にポッドの数が少なかった時はポッドを追加して数を合わせる。（ポッドをどのノードに作成するかは `kube-scheduler` 決定する）
 
-## Kubernetes YAML
+このセルフヒーリングを実現するため、レプリケーションコントローラーはポッドを常に監視して生存確認を行っている。単純なケースでは、1つのレプリケーションコントローラーを作成して1つのポッドを作成することで、無期限に確実にポッドを動作させることができる。
 
-テンプレートからレプリケーションコントローラーを生成する例を紹介する。ドキュメントは[こちら](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#replicationcontroller-v1-core)。
+### スケーリング
 
-（公式ドキュメントにもあるように、ほとんどの場合で `Deployment` と `ReplicaSet` の使用を推奨されているが…。）
+レプリケーションコントローラーを使用すると、レプリカの数（ `` フィールド）を更新するだけで簡単にレプリカの数を増減できる。これは手動か、自動的なスケーリングのプログラムなどによって行うことが出来る。
 
-次のテンプレートはポッドを3つ生成・維持するNginxを立ち上げるレプリケーションコントローラーを生成するテンプレート。 **.spec.selector** フィールドはこのレプリケーションコントローラーが管理するポッドを特定するためのもので、ポッドのラベル **.spec.template.metadata.labels** と同じものを設定しなければならない。（このラベルは重複させるべきではない）
+レプリケーションコントローラーが複数のノードに作成したポッドは `Service` によって内部、または外部に公開される。複数のノードにポッドを作成しても問題なく通信を行うことができるのはこの `Service` のおかげだ。（これは自分で別途作成する必要がある）
+
+### ローリングアップデート
+
+レプリケーションコントローラーはポッドを1つずつ置きかえていくことでローリングアップデートを実現している。（ `kubectl rolling-update` ）
+
+更新が実行された時、Kubernetesは全く新しいレプリケーションコントローラーを作成し、新しいコントローラー（+1）と古いコントローラー（-1）でポッドを1ずつスケールし、古いコントローラーのポッドが0に達した時点で古いコントローラーを削除する。
+
+アップデートに使用される2つのレプリケーションコントローラーは、イメージのタグなどで少なくとも1つ以上の差別化できるラベルを持つ必要がある。
+
+
+## Kubernetes template yaml
+
+次のテンプレートは何もしないポッドを3つ維持するレプリケーションコントローラーのを作成する `yaml` 。
+
+- [ドキュメント](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#replicationcontroller-v1-core)
 
 ```yaml
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: myapp
+  name: my-rc
 spec:
-  # レプリカ数の指定。この数だけPod数を維持
-  replicas: 3
+  replicas: 3 # レプリカ数の指定
   selector:
-    app: my-nginx
+    app: my-rc-pod # 管理するポッドのラベル
   template:
     metadata:
       labels:
-        app: my-nginx
+        app: my-rc-pod # .spec.selector.app と同じもの
     spec:
       containers:
-      - name: nginx
-        image: nginx
+      - name: my-pod-container
+        image: busybox
+        command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
+```
+
+このテンプレートでポッドを3つ作成し、維持するレプリケーションコントローラーが立ち上がる。
+
+`.spec.selector` フィールドはこのレプリケーションコントローラーが管理するポッドを特定するためのもので、ポッドのラベル **.spec.template.metadata.labels** と同じものにする。このセレクターとラベルを使うことで、レプリケーションコントローラーはポッドのIPアドレスを知らなくてもポッドを管理することができる。（このラベルは異なる役割のポッドインスタンスで重複させるべきではない）
+
+レプリケーションコントローラーの確認には `kubectl get rc` を使う。同時に `kubectl get pods` でレプリケーションコントローラーが作成したポッドも確認できるはずだ。
+
+```
+$ kubectl apply -f rc.yml
+replicationcontroller/my-rc created
+
+$ kubectl get rc
+NAME      DESIRED   CURRENT   READY     AGE
+my-rc     3         3         3         24s
+
+$ kubectl get pods
+NAME          READY     STATUS    RESTARTS   AGE
+my-rc-hj8bh   1/1       Running   0          38s
+my-rc-ngwhm   1/1       Running   0          38s
+my-rc-tl4qr   1/1       Running   0          38s
+```
+
+### レプリカの維持
+
+レプリカ数は3に設定されているのでポッドは3つの状態で維持されるはずだ。試しに、ポッドの削除を試してみる。
+
+```
+$ kubectl delete pods my-rc-ngwhm my-rc-tl4qr
+pod "my-rc-ngwhm" deleted
+pod "my-rc-tl4qr" deleted
+
+$ kubectl get pods
+NAME          READY     STATUS        RESTARTS   AGE
+my-rc-49frn   1/1       Running       0          12s
+my-rc-hj8bh   1/1       Running       0          5m
+my-rc-ngwhm   1/1       Terminating   0          5m
+my-rc-sfdl9   1/1       Running       0          12s
+my-rc-tl4qr   1/1       Terminating   0          5m
+```
+
+ポッドが削除された時は即座に新しいポッドが立ち上がり、3つの状態が維持されていることが確認できる。ステータスが `Terminating` のポッドは後に完全に削除される。
+
+### レプリカ数の更新
+
+テンプレートのレプリカ数を変更して更新すると、維持されるポッドの数も変更されたことが分かる。 `.spec.replicas` の値を2にして更新してみる。
+
+```yaml
+spec:
+  replicas: 2 # レプリカ数の指定
 ```
 
 ```
 $ kubectl apply -f rc.yml
-replicationcontroller/myapp created
+replicationcontroller/my-rc configured
+
+$ kubectl get pods
+NAME          READY     STATUS        RESTARTS   AGE
+my-rc-49frn   1/1       Running       0          4m
+my-rc-hj8bh   1/1       Running       0          9m
+my-rc-sfdl9   1/1       Terminating   0          4m
 ```

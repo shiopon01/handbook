@@ -2,54 +2,54 @@
 
 ## 概要
 
-MinikubeはKubernetesをローカルで簡単に実行できるツールのことで、Kubernetesをちょっと触ってみたいとか練習時はこれが有用だ。詳しくは[公式リポジトリ](https://github.com/kubernetes/minikube)参照。
+MinikubeはKubernetesをローカルで簡単に実行できるツールで、Kubernetesをちょっと触ってみたい、練習してみたい、または1ノードで実行したいとか考えている時これが有用だ。
 
-Minikubeのチュートリアルなんてもう山ほど転がっていると思うが、ここではできるだけ分かりやすくMinikubeのセットアップを解説する。
+- [公式リポジトリ](https://github.com/kubernetes/minikube)
 
+Minikubeのチュートリアルなんてもう山ほど転がっていると思うが、ここでもMinikubeのセットアップの順序だけ解説してみる。
 
 ## インストール
 
-[Install Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/)に沿って説明する。ここでは `ハイパーバイザ` 、 `kubectl` 、 `Minikube` の3つをインストールすることになる。
+[Install Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) に沿って説明する。この内容に従って、 `ハイパーバイザ` 、 `kubectl` 、 `Minikube` の3つをインストールしよう。
 
-ハイパーバイザと言うと難しそうに聞こえるが、これは `VirtualBox` や `VMWare` など仮想マシンを動かすための環境のことだ。Minikubeは指定したハイパーバイザの仮想マシン上で動作するのでホスト環境のDockerコンテナなどを汚さないようになっている。（ハイパーバイザを使用しない場合はその限りではない）
+ハイパーバイザは `VirtualBox` や `VMWare` など仮想マシンを動かすための環境のことだ。Minikubeは指定したハイパーバイザの仮想マシン上で動作するので、ホスト環境を汚さずに実行することができる。（ハイパーバイザを使用しない場合はその限りではない）
 
-また、kubectlはKubernetesのコマンドラインツールのことだ。Kubernetesを操作・管理するために必要になる。
+kubectlはKubernetesのコマンドラインツールのことで、Kubernetesをコマンドで操作・管理するために必要。
 
 #### 1. ハイパーバイザのインストール
 
-Minikubeには標準で `VirtualBox` と `VMWare` を扱う仕組みが備わっているので基本的にはこのどちらかを利用する。よく使われるのは `VirtualBox` のほう。
+Minikubeには標準で `VirtualBox` と `VMWare` を扱う仕組みが備わっているので基本的にはこのどちらかを利用する。Vagrantとかでもそうだけど、よく使われるのは `VirtualBox` のほう。
 
 - [Install a Hypervisor](https://kubernetes.io/docs/tasks/tools/install-minikube/#install-a-hypervisor)
 
 #### 2. kubectlのインストール
 
-今回はハイパーバイザ上で動作するMinikubeを操作するために利用される。
+Minikubeで動くKubernetesを操作するためにインストールする。コマンドの設定ファイルは `~/.kube` に入る。
 
 - [Install and Set Up kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
 #### 3. Minikubeのインストール
 
-Minikube本体のインストールは公式のリリースノートが丁寧で、各OSごとにやり方が用意されている。これを見ながらやったらたぶん、なんとかなる。
+Minikube本体のインストールは公式のリリースノートが丁寧で、各OSごとにやり方が用意されている。。
 
 - [kubernetes/minikube/releases](https://github.com/kubernetes/minikube/releases)
 
-インストールが完了したなら、 `minikube version` などで存在を確認できる。
+インストールが完了したら、 `minikube version` などで存在を確認できる。
 
 ```
 $ minikube version
 minikube version: v0.28.2
 ```
 
-
 ## 起動と接続
 
-ハイパーバイザ、kubectl、Minikubeをインストールしたならば、まずは起動してみる。
+インストールが完了したなら、Minikubeを起動してみよう。
 
-minikubeはDocker公式のオーケストレーションツールであるDocker Machineを使ってVM上にKubernetes環境を作成するので、どのハイパーバイザ上に立ち上げるかを指定する。ここではVirtualBoxを利用することにする。
+MinikubeはDocker公式のオーケストレーションツールである `Docker Machine` を使って指定の環境にKubernetes環境を作成する。ここではさっきインストールしたVirtualBoxを使用する。
 
 > ドライバーについての記載は[この記事](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md)
 
-Minikubeの起動には `minikube start` を使う。 `--vm-driver` のオプションでドライバ（使用するハイパーバイザ）を指定できる。 `--vm-driver=none` を使うとVMではなくホスト上でminikubeを立ち上げられる。
+Minikubeの起動には `minikube start` を使う。その時、 `--vm-driver` のオプションでドライバ（使用するハイパーバイザ）を指定する。（ `--vm-driver=none` を使うとホスト上でMinikubeを立ち上げられる）
 
 ```
 $ minikube --vm-driver=virtualbox start
@@ -65,9 +65,9 @@ Kubectl is now configured to use the cluster.
 Loading cached images from config file.
 ```
 
-コマンドを入力したなら、こんな表示を出してminikubeが起動する。
+スタートしたら、こんな表示を出してMinikubeが起動する。
 
-今後もそうだがもしこのようなエラーが出たら、  `minikube delete` で解決するかもしれない。deleteしたあとは再度 `minikube start` を実行する。
+もし次のようなエラーが出たら `minikube delete` と `minikube start` でMinikubeを再生成することで解決するかもしれない。力押しだが、この方法は今後も恐らく役に立つ。
 
 ```
 Error restarting cluster:  restarting kube-proxy: waiting for kube-proxy to be up for configmap update: timed out waiting for the condition
@@ -76,7 +76,7 @@ $ minikube delete
 $ minikube --vm-driver=virtualbox start
 ```
 
-minikubeが起動出来ていそうなら `minikube status` でIPアドレス等を確認することができる。 `kubectl cluster-info` を使うことでkubectl側から起動しているクラスターの情報を見ることも可能。
+Minikubeが起動したら、まずは `minikube status` でIPアドレス等を確認してみよう。kubectl側からも `kubectl cluster-info` で起動しているクラスターの情報を見ることができる。
 
 ```
 $ minikube status
@@ -91,11 +91,11 @@ KubeDNS is running at https://192.168.99.100:8443/api/v1/namespaces/kube-system/
 
 ### kubectlの接続
 
-クラスターを起動すると、コマンドラインツール `kubectl` の向き先は自動的にminikubeのほうを向くようになっている。このため特に設定しなくても、kubectlからminikubeのクラスターを操作することが出来る。
+クラスターを起動するとコマンドラインツール `kubectl` は自動的にMinikubeの環境を操作するようになる。そのため、特に設定しなくてもkubectlからminikubeのクラスターを操作することが出来る。
 
-だた、もし自動的に設定されていなかった場合は自分でコンテキスト（操作するクラスター）を切り替えることで対応しよう。minikubeは本来自動でこの切り替えをやってくれる。
+だた、もし自動的に設定されていなかった場合は自分でコンテキスト（操作するクラスター）を切り替えることで対応しよう。Minikubeは本来自動でこの切り替えまでも勝手にやってくれる。
 
-コンテキストの一覧は `kubectl config get-contexts` で確認でき、 `kubectl config use-context` で名前を指定するとそのコンテキストを利用できる。（minikubeのコンテキスト名は `minikube` ）
+コンテキストの一覧は `kubectl config get-contexts` で確認でき、 `kubectl config use-context [name]` のように利用するコンテキストを選択できる。（minikubeのコンテキスト名は `minikube` ）
 
 ```
 $ kubectl config get-contexts
@@ -106,32 +106,38 @@ $ kubectl config use-context minikube
 Switched to context "minikube".
 ```
 
-これらコンテキストの情報は `~/.kube/config` に格納されているのだが、kubectlの範囲なのでここではこれ以上は触れない。
-
+これらコンテキストの情報は `~/.kube/config` に格納されている。
 
 ### ダッシュボード
 
-これが完了したら一旦の接続確認は完了。
+ここまで完了したら一旦の接続確認は完了。
 
-Minikubeを起動すると自動的に[Kubernetes Dashboard](https://github.com/kubernetes/dashboard)が立ち上がるようになっており、ここには指定URLからアクセスできる。このダッシュボードはクラスタのCPUやメモリーの状態、起動しているコンテナなどリソースの情報を表示していて、うまく動いているかの確認の役に立つ。（Minukubeだとクラスタといっても、VMが1つあるだけだが…）
+Kubernetesには[Kubernetes Dashboard](https://github.com/kubernetes/dashboard)というクラスタのCPUやメモリーの状態、起動しているコンテナなどリソースの情報を表示するダッシュボードというアプリが備わっており、Minikubeを起動した際にこれが自動的立ち上がるようになっている。
 
-アクセスするには `minikube dashboard` でブラウザを立ち上げてもらうか、 `--url` オプションで表示されたURLに手動でアクセスする方法がある。
+ここには指定URLからアクセスでき、Kubernetesがうまく動いているかの確認の役に立つ。
+
+アクセスするには `minikube dashboard` でブラウザを立ち上げてもらうか、`--url` オプションで表示されたURLに手動でアクセスする方法がある。
 
 ```
 $ minikube dashboard --url
 http://192.168.99.100:30000
 ```
 
-こんな画面が表示される。
+正常に動作しているなら、アクセスした時にこんな画面が表示される。
 
 ![dashboard](img/dashboard.png)
 
 
 ## コンテナの確認
 
-ここまで動作させて気になるのが `クラスター > ノード > minikube` のタブで見ることができるポッド（コンテナの集合体）がどのようにして動かされているのかだ。ホストで `docker ps` を実行してもMinikubeが動いているのはVM上のため実際にコンテナを確認することは出来ない。
+ここまで動作させて気になるのが `クラスター > ノード > minikube` のタブで見ることができるポッド（Dockerコンテナの集合体）がどのようにして動かされているのかだ。ホストで `docker ps` を実行してもMinikubeが動いているのはVM上のため実際にコンテナを確認することは出来ない。
 
-こんなに時は、Minikubeが動いているVMのDockerデーモン（コマンド）を利用できるコマンド `eval $(minikube docker-env)` が役に立つ。既存のDockerコマンドの設定を書き換え、VM内のDockerの出力結果を得られる、というものだ。（元に戻すときは `-u` オプション）
+```
+$ docker ps
+CONTAINER ID  IMAGE  COMMAND  CREATED  STATUS  PORTS  NAMES
+```
+
+こんなに時は、Minikubeが動いているVMのDockerデーモンのコマンドを利用できる `eval $(minikube docker-env)` が役に立つ。既存のDockerコマンドの設定を書き換え、VM内のDockerの出力結果を得られる。（元に戻すときは `-u` オプション）
 
 ```
 $ eval $(minikube docker-env)
@@ -171,7 +177,7 @@ k8s.gcr.io/pause-amd64:3.1	k8s_POD_kube-scheduler-minikube_kube-system_2acb197d5
 
 ## 情報の閲覧
 
-クラスタイベントやkubectlの設定は次のコマンドで見ることが出来る。
+クラスタイベントは `kubectl get event` 、kubectlの設定は `kubectl config view` で見ることが出来る。
 
 ```
 $ kubectl get events
@@ -180,7 +186,7 @@ $ kubectl config view
 
 ## 停止と削除
 
-Minikube環境を削除するときは `minikube stop` 、 `minikube delete` を使用する。
+Minikube環境を削除するときは `minikube stop` -> `minikube delete` を使用する。
 
 ```
 $ minikube stop
@@ -189,7 +195,6 @@ Machine stopped.
 
 $ minikube delete
 ```
-
 
 ## 参考
 
