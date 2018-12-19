@@ -1,14 +1,18 @@
 # Basic information
 
-Kubernetesを利用するにあたって必要となる基本的な概念を軽く解説する。情報量が多いので、初めてKubernetesにチャレンジする人は流し読みしてもらっても構わない。
+Kubernetesを利用するにあたって必要となる基本的な概念を軽く解説する。
 
-## Kubernetesクラスター
+解説用のマークダウンファイルが用意されている場合は単語名がリンクになっている。
+
+覚えないといけないことは多いので、初めてKubernetesにチャレンジする人は流し読みしてもらっても問題ない。ファイルを先頭の番号順に読み進めることでこれらをなんとなく理解していける。
+
+## Kubernetes Cluster
 
 1つ以上のマスターノード、1つ以上のワーカーノードの集まりをKubernetesクラスターと呼ぶ。
 
 MinikubeでローカルにKubernetes環境を構築した場合も、マスターノードとワーカーノードは同一ノードだがギリギリ条件は満たされるのでKubernetesクラスターと呼べる。
 
-## Kubernetesノード
+## Kubernetes Node
 
 コンテナのオーケストレーションを可能とするKubernetesだが、コンテナの実行環境の実体はKubernetesによって束ねられた物理サーバーやVMの集まりである。そしてKubernetesではこの物理サーバー、VMひとつひとつを **ノード** と呼ぶ。
 
@@ -17,7 +21,7 @@ Kubernetesを構成するノードには2種類あり、それぞれ役割が違
 - [Kubernetes Components](https://kubernetes.io/docs/concepts/overview/components/)
 
 
-## マスターノード（Kubernetes Master）
+## Kubernetes Master（マスターノード）
 
 Kubernetesクラスターの望ましい状態を維持するためのノードで、1つのクラスターには必ず1つ以上のマスターノードが存在する。いわばKubernetesクラスターの司令塔である。
 
@@ -44,7 +48,7 @@ Kubernetesのリソース管理を行うAPIを提供するプロセス。kubectl
 `kube-apiserver` のAPIを使ってリソースの状態監視を行い、ポッドとノードを紐付ける役割を持つ。
 
 
-## ワーカーノード（Kubernetes Nodes）
+## Kubernetes Nodes（ワーカーノード）
 
 Dockerによってアプリケーションコンテナが実行されるノードで、実態はマスターノードが管理している物理サーバー、またはVMなど。アプリケーションのコンテナ以外にもマスターノードに情報を送り続けるためのサービスなど、管理されるために必要なものも同時に実行されている。
 
