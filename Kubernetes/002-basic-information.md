@@ -96,11 +96,11 @@ Kubernetesに現れるオブジェクトの解説。Kubernetesはシステムや
 
 サービスのIPアドレスへのアクセスは背後のポッドに割り振られるため、実質的な挙動はよくあるロードバランサと同じ。
 
-- [Services - Kubernetes](https://kubernetes.io/docs/concepts/services-networking/service/)
+- [Service](009-service.md)
 
 ### ボリューム（Volume）
 
-- [Volumes - Kubernetes](https://kubernetes.io/docs/concepts/storage/volumes/)
+- [Volumes](011-volume.md)
 
 ### ネームスペース（Namespace）
 
@@ -110,7 +110,7 @@ Kubernetesに現れるオブジェクトの解説。Kubernetesはシステムや
 
 （数人から数十人のユーザーが活動するレベルのクラスターであれば、ネームスペースを使用する必要はない。この場合はラベルを使用してリソースを区別できる）
 
-- [Namespaces - Kubernetes](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/)
+- [Namespaces](010-namespace.md)
 
 
 ## コントローラーオブジェクト（Kubernetesオブジェクト）
@@ -135,7 +135,7 @@ Kubernetesに現れるオブジェクトの解説。Kubernetesはシステムや
 
 現在はレプリカセットの使用が推奨されており、レプリケーションコントローラーはあまり使うべきではないかもしれない。
 
-- [ReplicationController](https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/)
+- [ReplicationController](006-replication-controller.md)
 
 ### レプリカセット（ReplicaSet）
 
@@ -145,7 +145,7 @@ Kubernetesに現れるオブジェクトの解説。Kubernetesはシステムや
 
 デプロイメントのバックエンドで使用されることもあり、現在はレプリケーションコントローラーよりもレプリカセットのほうが主流である。レプリケーションコントローラーに比べてセレクターのサポートも充実している。（セットベースのセレクターをサポート）
 
-- [ReplicaSet - Kubernetes](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/)
+- [ReplicaSet](007-replica-set.md)
 
 ### デプロイメント（Deployment）
 
@@ -153,7 +153,7 @@ Kubernetesに現れるオブジェクトの解説。Kubernetesはシステムや
 
 ローリングアップデートを代表とするデプロイ・アップデート方法をサポートしており、アプリケーションサービスを公開する時に利用する。アップデート後も前バージョンのレプリカセットを保持しており、いつでもバージョンを巻き戻すことができるなどの特徴を持つ。
 
-- [Deployments - Kubernetes](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
+- [Deployment](008-deployment.md)
 
 ### ステートフルセット（StatefulSet）
 
@@ -161,7 +161,7 @@ Kubernetesに現れるオブジェクトの解説。Kubernetesはシステムや
 
 ステートフルセットでは、データストアなどに使えるポッドをYAMLテンプレートなどから直接生成する。
 
-- [StatefulSets - Kubernetes](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/)
+- [StatefulSets](012-stateful-set.md)
 
 ### デーモンセット（DaemonSet）
 
@@ -171,7 +171,7 @@ Kubernetesに現れるオブジェクトの解説。Kubernetesはシステムや
 
 そのため、デーモンセットのポッドはKubernetesスケジューラーが起動していなくても作成が可能。
 
-- [DaemonSet - Kubernetes](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/)
+- [DaemonSet](013-daemon-set.md)
 
 ### ジョブ（Job）
 
@@ -179,14 +179,13 @@ Kubernetesに現れるオブジェクトの解説。Kubernetesはシステムや
 
 指定された数のポッドが処理を完遂することを保証するのでバッチ処理などに利用できる。レプリカセットなどと違って、このコンテナは処理が完了した時に終了するよう設定しておく。（例えば、単純な計算を出力するだけのスクリプトなど）
 
-- [Jobs - Run to Completion - Kubernetes](https://kubernetes.io/docs/concepts/workloads/controllers/jobs-run-to-completion/)
+- [Job](014-job.md)
 
 ### クーロンジョブ（CronJob）
 
 コマンドのcrontabに似た機能で、設定したスケジュールに従って定期的にJobを実行する。
 
-- [CronJob - Kubernetes](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/)
-
+- [CronJob](015-cron-job.md)
 
 
 ## その他機能

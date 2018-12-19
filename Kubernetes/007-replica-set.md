@@ -2,119 +2,98 @@
 
 ## 概要
 
-レプリカセットを簡単に説明するなら、次世代のレプリケーションコントローラーと言える。機能としては殆ど変わらないが、新しいセットベースのセレクターがサポートされた。
+レプリカセットは次世代のレプリケーションコントローラーと呼ばれている。とはいっても機能はほとんどレプリケーションコントローラーと同じで、変わったところはセットベースのセレクターがサポートされた点と、ポッドのアップデートに関する機能が削除された点くらい。
 
-また、レプリケーションコントローラーと比べると、ポッドのアップデートに関する機能 `rolling-update` が削除されている。これはレプリカセットが、 `デプロイメント` のバックエンドとして使用されることを前提とした機能だからだ。
+ポッドのアップデート機能が削除されたのは、レプリカセットがコントローラーオブジェクト `Deployment` のバックエンドとして使用されることを前提とした機能として生まれたからだ。レプリカセット単体でも使用できるが、特別な状況でない場合はデプロイメントのバックエンドとして使用することが推奨されている。
 
-- [replicaSet - Kubernetes](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/)
+- [ReplicaSet - Kubernetes](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/)
 
-## 機能
+> ReplicaSetはDeploymentのバックエンド
 
-レプリカセットは予め設定しておいた `レプリカ` の数だけポッドを生成・維持するという、レプリケーションコントローラーとほぼ同じ機能とコマンドを実装している。
+## 仕組みと役割
 
-唯一違う点が、 `kubectl rolling-update` が削除されたことだ。`デプロイメント` のバックエンドとして設計され、実際にアップデート周りの機能が `デプロイメント` として分離されたので、レプリカセットからローリングアップデートのコマンドは廃止された。（ローリングアップデート機能を使用する場合は、代わりにデプロイメントを使用する）
+レプリカセットの主な機能は、予め指定しておいた `レプリカ` の数だけポッドを起動することを保証すること。レプリケーションコントローラーの後継だけあって、ほぼ同じ機能とコマンドが実装されている。
 
-レプリカセット単体でも使用できるが、特別な状況でない限りデプロイメントのバックエンドとして使用することが推奨されている。
+レプリケーションコントローラーとレプリカセットの違いは、レプリケーションコントローラーが単体で動作するよう設計されたことに対し、レプリカセットが `Deployment` のバックエンドとして設計された点である。実際、 `rolling-update` はコマンドから削除され、アップデートの機能は `Deployment` に分離された。
 
 ### セレクタ
 
-レプリケーションコントローラーでは等価ベースのセレクタをサポートしていた。これは、セレクタで指定した文字列と一致するラベルを持つポッドを管理するというものだ。
+レプリケーションコントローラーは等価ベースのセレクタをサポートしていた。これは、セレクタで指定した文字列と完全に一致するラベルを持つポッドを管理するというもの。
 
-（ `.spec.metadata.labels` は設定しない時、 `.metadata.labels` と同じ値が設定される。違う値を自分で設定してもOK）
+次のセレクタの例は、レプリケーションコントローラーがラベル `app: my-app` を持つポッドを管理する設定。
 
 ```yaml
-apiVersion: v1
-kind: ReplicationController
-metadata:
-  name: myapp
 spec:
-  replicas: 3
-  # Selector
   selector:
-    app: my-nginx
-  template:
-    metadata:
-      # Labels
-      labels:
-        app: my-nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx
+    app: my-app
 ```
 
-レプリカセットでは、セットベースのセレクタがサポートされた。これによって出来ることは細かいセレクタが定義できるようになったくらいなのだが、有用ではある。
+一方レプリカセットに実装されているセットベースのセレクタはオプションが追加されていて、細かいセレクタが定義できるようになった。
 
-セットベースのセレクターでは、次のようなキーがサポートされている。
+セットベースのセレクターでは、次のキーがサポートされている。
 
-- **matchLabels** : `{Key: Value}` のマップであり、同じラベルを持つポッドを管理する。やっていることは等価ベースのセレクタと同じ。
-- **matchExpressions** : `{key: Key, operator: Op, values: [Value]}` の形でラベルをチェックする。keyはラベルのキー（ `name` など）であり、operatorは `In` `NotIn` `Exists` `DoesNotExits` のどれかを指定する。valuesはチェックに利用するラベルの値の配列であり、operatorで指定した演算子によってチェックされる
+- **matchLabels** : `{Key: Value}` のマップであり、一致するラベルを持つポッドを管理する。等価ベースのセレクタと同じ
+- **matchExpressions** : `{key: Key, operator: Op, values: [Value]}` の形で定義し、 `operator` に指定された条件でラベルをチェックする。keyはラベルのキー（ `app` など）を指定し、operatorには `In` `NotIn` `Exists` `DoesNotExits` のうちひとつを指定する。valuesはチェックに利用するラベルの値の配列であり、operatorで指定した演算子によってチェックされる
 
-matchLabelsとmatchExpressionsの両方を設定した場合は、両方の条件のANDで扱われる。
+`matchLabels` と `matchExpressions` の両方を設定した場合は条件のANDで扱われる。
+
+例えば次のセレクタの例では、ラベル `app: my-app` を持っていてなおかつ `tier: frontend` または `tier: backend` のどちらかを持つポッドを管理する条件になる。
 
 ```yaml
-apiVersion: v1
-kind: ReplicaSet
-metadata:
-  name: myapp-2
-  labels:
-    app: guestbook
-    tier: frontend
-spec:
-  replicas: 3
-  # Selector
-  selector:
-    matchLabels:
-      tier: frontend
-    matchExpressions:
-      - {key: tier, operator: In, values: [frontend]}
-  template:
-    metadata:
-      # Labels
-      labels:
-        app: guestbook
-        tier: frontend
-    spec:
-      containers:
-      - name: nginx
-        image: nginx
+selector:
+  matchLabels:
+    app: my-app
+  matchExpressions:
+    - {key: tier, operator: In, values: [frontend, backend]}
 ```
 
 - [Labels and Selectors - Kubernetes](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/)
 
-## Kubernetes YAML
+
+## Kubernetes template yaml
+
+次のテンプレートは何もしないポッドを3つ維持するレプリカセットを作成する `yaml` 。（レプリカセットは `apiVersion: apps/v1` の機能なので `apps/v1` を指定している）
 
 ```yaml
-apiVersion: v1
+apiVersion: apps/v1
 kind: ReplicaSet
 metadata:
-  name: frontend # require
-  labels:
-    app: guestbook
-    tier: frontend
+  name: my-rs # レプリカ数の指定
 spec:
   replicas: 3
-  selector:
+  selector: # セレクタの指定
     matchLabels:
-      tier: frontend
+      app: my-rs-pod
     matchExpressions:
-      - {key: tier, operator: In, values: [frontend]}
-  template: # Pod Template
+    - {key: tier, operator: In, values: [frontend]}
+  template:
     metadata:
-      labels: # Pod Label
-        app: guestbook
+      labels:
+        app: my-rs-pod
         tier: frontend
     spec:
       containers:
-        - name: php-redis
-          image: gcr.io/google_samples/gb-frontend:v3
-          resources:
-            requests:
-              cpu: 100m
-              memory: 100Mi
-          env:
-            - name: GET_HOSTS_FROM
-              value: dns
-          ports:
-            - containerPort: 80
+      - name: my-pod-container
+        image: busybox
+        command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
+```
+
+このテンプレートでポッドを3つ作成し、維持するレプリカセットが立ち上がる。
+
+この時、セレクタとポッドのラベルが噛み合っていない時はエラーが出るので、管理されていないポッドが生成されてしまうことはない。
+
+レプリカセットは `kubectl get rs` で確認できる。同時にポッドも確認する。
+
+```
+$ kubectl apply -f rs.yml
+replicaset.apps/my-rs created
+
+$ kubectl get rs,pods
+NAME                          DESIRED   CURRENT   READY     AGE
+replicaset.extensions/my-rs   3         3         3         1m
+
+NAME              READY     STATUS    RESTARTS   AGE
+pod/my-rs-h8c4r   1/1       Running   0          1m
+pod/my-rs-h8v2f   1/1       Running   0          1m
+pod/my-rs-s6cfv   1/1       Running   0          1m
 ```
