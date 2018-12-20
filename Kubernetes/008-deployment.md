@@ -2,43 +2,123 @@
 
 ## 概要
 
-デプロイメントはレプリカセットを作成・管理する仕組み。サービスの提供を目的としたポッド生成をデプロイメントから行うことで、レプリカセットのカナリアリリースやロールバックを行うことが出来る。
+デプロイメントはコントローラーオブジェクトのひとつで、レプリカセットを作成し、管理する仕組み。作成されたレプリカセットはポッドテンプレートに従ってポッドを作成する。
+
+サービスの提供を目的としたポッドの作成をデプロイメントから行うことで、サービスのアップデートやロールバックを容易に行うことが出来る。
 
 - [Deployment - Kubernetes](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
 
-## 機能
+> アプリケーションを提供する最善の仕組み
 
-デプロイメントはテンプレートからレプリカセットを作成する仕組み。レプリカセットは記述されたポッドの情報（ `PodTemplate` ）をもとにポッドを作成し、指定された数レプリカ数に調節する。
+## 仕組みと役割
 
-次のテンプレートはデプロイメントからNginxポッドを3つ作成する。
+デプロイメントの主な機能は、テンプレートからレプリカセットを作成すること。デプロイメントに作成されたレプリカセットはポッドテンプレートからポッドを作成し、サービスを提供する。サービスのアップデートはデプロイメントがレプリカセットを切り替えることで行われる。
+
+レプリケーションコントローラーがポッドの管理（レプリカセット）とロールアウトの管理（デプロイメント）に分離したところのロールアウトの部分なだけあって、レプリカセットのロールアウトとバージョン管理周りの機能が実装されている。
+
+セレクタはレプリカセットと同じく、セットベースのセレクタが提供されている。
+
+### ロールバック（巻き戻し）
+
+デプロイメントは全てのロールアウト履歴をシステムで保持しているので、必要に応じていつでもロールバックを行うことができる。（具体的には、ロールアウトがトリガーされた時に `.spec.template` の内容がデプロイメントによって保持されている）
+
+
+## Kubernetes template yaml
+
+次のテンプレートはポッドを3つ生成するレプリカセットを作成するデプロイメントの `yaml` 。（デプロイメントは `apiVersion: apps/v1` の機能なので `apps/v1` を指定している）
 
 ```yaml
-apiVersion: v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-deployment
-  labels:
-    app: nginx
+  name: my-deployment
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: nginx
+      app: my-deployment-rs-pod
   template:
     metadata:
       labels:
-        app: nginx
+        app: my-deployment-rs-pod
     spec:
       containers:
-      - name: nginx
-        image: nginx:1.15.4
-        ports:
-        - containerPort: 80
+      - name: my-pod-container
+        image: busybox
+        command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
 ```
 
-`.spec.template.metadata.labels.app` の値はポッドのラベルだけでなく、レプリカセットのラベルとセレクタの一部にも使用される。またレプリカセットやポッドは、レプリカセットごとに配下のポッドを識別するための **pod-template-hash** という `PodTemplate` から生成したハッシュ値も持つ。
+このテンプレートはデプロイメントを作成し、他にもレプリカセットとポッドが3つ立ち上がる。レプリカセットでも同じだが、この時セレクタとポッドのラベルが噛み合っていない時はエラーが出る。
 
-### リリース
+`.spec.template.metadata.labels` に設定される値はポッドのラベルのように見えるが、ポッドのラベルと、レプリカセットのラベルとセレクタの一部にも使用される共通の値だ。またデプロイメントから作成されたレプリカセットのポッドは、レプリカセットごとに配下のポッドを識別するための **pod-template-hash** という `PodTemplate` から生成したハッシュ値を持っている。
+
+作成したデプロイメントは `kubectl get deployment` で確認できる。同時にレプリカセットとポッドも確認する。
+
+```
+$ kubectl apply -f deployment.yml
+deployment.apps/my-deployment created
+
+$ kubectl get deployment,rs,pods
+NAME                                  DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+deployment.extensions/my-deployment   3         3         3            3           47s
+
+NAME                                             DESIRED   CURRENT   READY     AGE
+replicaset.extensions/my-deployment-6f578c74d9   3         3         3         47s
+
+NAME                                 READY     STATUS    RESTARTS   AGE
+pod/my-deployment-6f578c74d9-h6zgk   1/1       Running   0          47s
+pod/my-deployment-6f578c74d9-srs86   1/1       Running   0          47s
+pod/my-deployment-6f578c74d9-ss4tq   1/1       Running   0          47s
+```
+
+もっと詳細な情報を見たい場合は `kubectl describe` を使える。
+
+```
+$ kubectl describe deployment my-deployment
+Name:                   my-deployment
+Namespace:              default
+CreationTimestamp:      Thu, 20 Dec 2018 11:49:11 +0900
+Labels:                 <none>
+Annotations:            deployment.kubernetes.io/revision=1
+                        kubectl.kubernetes.io/last-applied-configuration={"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"my-deployment","namespace":"default"},"spec":{"replicas":3,"selector":...
+Selector:               app=my-deployment-rs-pod
+Replicas:               3 desired | 3 updated | 3 total | 3 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:  app=my-deployment-rs-pod
+  Containers:
+   my-pod-container:
+    Image:      busybox
+    Port:       <none>
+    Host Port:  <none>
+    Command:
+      sh
+      -c
+      echo Hello Kubernetes! && sleep 3600
+    Environment:  <none>
+    Mounts:       <none>
+  Volumes:        <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Progressing    True    NewReplicaSetAvailable
+  Available      True    MinimumReplicasAvailable
+OldReplicaSets:  <none>
+NewReplicaSet:   my-deployment-6f578c74d9 (3/3 replicas created)
+Events:          <none>
+```
+
+
+### ロールアウト
+
+
+レプリケーションコントローラーはポッドを1つずつ置きかえていくことでローリングアップデートを実現している。（ `kubectl rolling-update` ）
+
+更新が実行された時、Kubernetesは全く新しいレプリケーションコントローラーを作成し、新しいコントローラー（+1）と古いコントローラー（-1）でポッドを1ずつスケールし、古いコントローラーのポッドが0に達した時点で古いコントローラーを削除する。
+
+
 
 デプロイメントはコンテナイメージのバージョンアップなどのアップデートがあった場合、具体的にはテンプレートの `.spec.template` （コンテナイメージなどを含むPodTemplate）に変更があった時、自動的にポッドのローリングアップデートを開始する。
 
@@ -46,17 +126,85 @@ spec:
 
 ただし、ローリングアップデートが終わった後も、アップデート前の古いレプリカセットはデプロイメントに保持されている。異常があった場合は自動で、または手動でロールバックを行うことが出来るためだ。
 
-次のコマンドは、デプロイメントに保存されているバージョンを確認し、手動でロールバックを行う例。
+
+
+
+試しにテンプレートのポッドの `image` を変更し、アップデートを行ってみる。
+
+```yaml
+spec:
+  containers:
+  - name: my-pod-container
+    image: nginx
+    command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
+```
+
+変更を適用すると、前述したようにデプロイメントは新しいレプリカセットを作成し、ポッド新しいレプリカセット（+1）と古いレプリカセット（-1）でポッドを1ずつスケールしながらポッドのアップデートを実施する。
+
+適用後にレプリカセットとポッドを確認すると、新しいレプリカセットにポッドが移動し、古いレプリカセットに属していたポッドは削除されていることがわかる。その時、新しいポッドもレプリカぶんだけ作成されている。（ポッドが0になってもレプリカセットは削除されない。ロールバックが行われた時にまたポッドを保有することになる）
 
 ```
-$ kubectl rollout history deployment nginx-deployment
-$ kubectl rollout undo deployment nginx-deployment # 直前のバージョンにロールバック
+$ kubectl apply -f deployment.yml
+deployment.apps/my-deployment configured
+
+$ kubectl get rs,pods
+NAME                                             DESIRED   CURRENT   READY     AGE
+replicaset.extensions/my-deployment-67666b8575   3         3         3         3m
+replicaset.extensions/my-deployment-6f578c74d9   0         0         0         1h
+
+NAME                             READY     STATUS        RESTARTS   AGE
+my-deployment-67666b8575-4vmrm   1/1       Running       0          16s
+my-deployment-67666b8575-r7twh   1/1       Running       0          11s
+my-deployment-67666b8575-tn4sf   1/1       Running       0          21s
+my-deployment-6f578c74d9-h6zgk   1/1       Terminating   1          1h
+my-deployment-6f578c74d9-srs86   1/1       Terminating   1          1h
+my-deployment-6f578c74d9-ss4tq   1/1       Terminating   1          1h
 ```
 
 
-## 実際に使ってみる
 
-Minikube上での実行になるが、このコマンドでデプロイメントの作成から公開、ブラウザでの閲覧まで行える。
+### ロールバック
+
+デプロイメントに保存されているバージョンは `kubectl rollout history` で確認することができ、ロールアウトの項目でロールアウトも行ったので現在は2つのバージョンが存在している。コマンドの出力にある `REVERSION 1` はimageがbusyboxのバージョンで、 `REVERSION 2` はimageがnginxのバージョンだ。
+
+```
+$ kubectl rollout history deployment my-deployment
+deployments "my-deployment"
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+```
+
+次の例は、1つ前のバージョンに手動でロールバックを行う例。ロールバックは `kubectl rollout undo` で行うことが出来る。この時デプロイメントのバージョンは `1` に戻るとかではなく、新しく `3` が作成されることに注意。
+
+```
+$ kubectl rollout undo deployment my-deployment
+deployment.extensions/my-deployment
+
+$ kubectl rollout history deployment my-deployment
+deployments "my-deployment"
+REVISION  CHANGE-CAUSE
+2         <none>
+3         <none>
+```
+
+ロールバックを行うと、ロールアウトと同じようにポッドのスケールが行われる。レプリカセットはロールアウトした時の物が残っているはずなので、それが利用される。（ `AGE` を見ると、ポッドを保有しているレプリカセットがたった今作成されたものではないことが分かる）
+
+```
+$ kubectl get rs,pods
+NAME                                             DESIRED   CURRENT   READY     AGE
+replicaset.extensions/my-deployment-67666b8575   0         0         0         11m
+replicaset.extensions/my-deployment-6f578c74d9   3         3         3         2h
+
+NAME                                 READY     STATUS    RESTARTS   AGE
+pod/my-deployment-6f578c74d9-57mhj   1/1       Running   0          46s
+pod/my-deployment-6f578c74d9-9bjq6   1/1       Running   0          52s
+pod/my-deployment-6f578c74d9-w4k5m   1/1       Running   0          40s
+```
+
+## コマンドからDeploymentを作成する
+
+このコマンドでデプロイメントの作成から公開、ブラウザでの閲覧まで行える。公開はMinikubeで行う。
 
 ```
 $ kubectl create -f  https://k8s.io/examples/controllers/nginx-deployment.yaml
