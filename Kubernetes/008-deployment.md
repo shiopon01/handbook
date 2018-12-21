@@ -125,7 +125,6 @@ spec:
   containers:
   - name: my-pod-container
     image: nginx
-    command: ['sh', '-c', 'echo Hello Kubernetes! && sleep 3600']
 ```
 
 変更を適用すると、前述したようにデプロイメントは新しいレプリカセットを作成し、ポッド新しいレプリカセット（+1）と古いレプリカセット（-1）でポッドを1ずつスケールしながらポッドのアップデートを実施する。

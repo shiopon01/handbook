@@ -124,42 +124,78 @@ my-svc2      <none>                                      5m
 
 サービスをクラスター外部に公開するためのサービスタイプ。
 
-NodePortはClusterIPを拡張する形でサービスを外部に公開する。iptablesにはClusterIPの設定に加え、外部からアクセスできるNodePortに来たリクエストをローカルアドレスに転送するルールが追加される。
+NodePortはClusterIPを拡張したもので、ホストIPアドレスを経由した外部からのアクセスをClusterIPに転送する設定がiptablesに追加されている。
 
-公式ドキュメントのこの記述は、NodePortをよく知らない時は正直分からないとおもう。
+```yaml
+kind: Service
+apiVersion: v1
+metadata:
+  name: my-svc
+spec:
+  type: NodePort
+  selector:
+    app: my-app
+  ports:
+  - port: 80
+  　nodePort: 32100
+```
 
-> 各ノードのIP上のサービスを静的ポート（the NodePort）に公開します。ClusterIP先のサービス、NodePortサービスはルート、自動的に作成されます。NodePort要求することで、クラスタの外からサービスに連絡することができます<NodeIP>:<NodePort>。
+テンプレートを適用して確認すると `TYPE: NodePort` のサービスが確認できる。ClusterIPと違うのは `PORT(S)` の項目で、 `80:32100/TCP` のようにサービスのポート80がNodePortのポート32100に割り当てられた。
 
-NodePortが適用されると、Kubenetes Masterはサービス用に3000-32767からポートを割り当て、全ノードで同じポートを開放させる。リクエストを受けたノードはkube-proxyを経由して指定されたセレクタのポッドにリクエストを割り振る。
+```
+$ kubectl get svc
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+my-svc       NodePort    10.103.245.27   <none>        80:32100/TCP   1m
+```
 
-HTTPロードバランサである `ingress` はここで公開されるポートを使って実装されている。
+NodePortはデフォルトでは `30000-32767` の中から適当なポートを割り当てる。ここで割り当てられたポートは全てのノードで開放され、リクエストを受けたノードは通常通りkube-proxyを経由してポッドにリクエストを転送する。（このポートは `.spec.ports` でnordPortを使えば自分で設定できる）
+
+マッピングはiptablesでNodePortのルールからClusterIPのルールにチェインするために使われており、NodePortで公開されたサービスにアクセスするためにも必要。
+
+ここで公開されたサービスは `localhost:32100` などでアクセスできる。Minikubeの場合はサービスの一覧を `minikube service list` で見ることが出来るので、ここで確認しても良い。Nginxのポッドを立ち上げているなら、ブラウザでアクセスした時にNginxの画面が表示される。
+
+```
+$ minikube service list
+|-------------|----------------------|-----------------------------|
+|  NAMESPACE  |         NAME         |             URL             |
+|-------------|----------------------|-----------------------------|
+| default     | my-svc               | http://192.168.99.100:32100 |
+```
+
+HTTPロードバランサの `ingress` はここで公開されたポートを使って実装される。
 
 ### LoadBalancer
 
-サービスをクラウドプロバイダのロードバランサと紐付けるためのサービスタイプ。
+サービスをクラスタ外部に公開し、さらにクラウドプロバイダのロードバランサと紐付けるためのサービスタイプ。
 
-LoadBalancerはNodePortを拡張する形でサービスをロードバランサと紐付ける。ロードバランサとの紐付け時に設定される `EXTERNAL-IP` 宛のリクエストは、NodePortと同じくローカルアドレスに転送される。（結果、ポッドに転送される）
+LoadBalancerはNodePortを拡張したもので、事前に `Cloud Provider` の設定を行うことでLoadBalancer作成時にクラウドプロバイダのロードバランサも自動で作成することができる。
 
-Cloud Providerの設定が正しければ、Kubernetesの設定を行った時にクラウドプロバイダのロードバランサも自動的に設定される。（GKE、EKSとか使ってる時は不要だと思う…）
+GKEやEKSでは恐らく不要。
+
+- [Cloud Providers - Kubernetes](https://kubernetes.io/docs/concepts/cluster-administration/cloud-providers/)
 
 ```yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: my-service
+  name: my-svc
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
 spec:
   type: LoadBalancer
   selector:
-    app: express
+    app: my-app
   ports:
   - protocol: TCP
-    port: 3000
-    targetPort: 3000
-  loadBalancerIP: 10.132.160.51
+    port: 80
+  　nodePort: 32100
 ```
 
+※ WIP
+
+### ExternalName
+
+※ WIP
 
 ## 参考
 
