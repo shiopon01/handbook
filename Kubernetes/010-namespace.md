@@ -2,6 +2,8 @@
 
 ## 概要
 
+ひとつのクラスタで複数の仮想的なクラスタを実行する仕組みとして、 **Namespace** と呼ばれる機能が提供されている。
+
 **Namespace** は単一のクラスター内で複数の仮想クラスターを動作させることができる仕組み。これら仮想クラスターは名前空間と呼ばれる。
 
 - [Namespace - Kubernetes](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/)
