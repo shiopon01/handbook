@@ -89,6 +89,8 @@ Kubernetes master is running at https://192.168.99.100:8443
 KubeDNS is running at https://192.168.99.100:8443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
 ```
 
+`minikube ssh` を使うとMinikubeが起動したVMにsshで繋ぐことができる。
+
 ### kubectlの接続
 
 クラスターを起動するとコマンドラインツール `kubectl` は自動的にMinikubeの環境を操作するようになる。そのため、特に設定しなくてもkubectlからminikubeのクラスターを操作することが出来る。

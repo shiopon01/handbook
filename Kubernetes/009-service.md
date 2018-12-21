@@ -2,83 +2,200 @@
 
 ## 概要
 
-各ポッドには専用のIPアドレスが割り振られているが、それは永続的なものではない。例えばポッドが更新された時、またはリスタートされた時など、ポッドのIPアドレスが変更されるタイミングはいくつか存在する。
+各ポッドには専用のIPアドレスが割り振られているが、それは永続的なものではない。例えばポッドが更新された時、またはデプロイメントによってレプリカセットが切り替えられた時など、ポッドのIPアドレスが変更されるタイミングはいくつか存在する。そのため、アプリを公開する時にポッドのIPアドレスをそのまま使うという選択は現実的ではない。
 
-そのため、ポッドのIPアドレスをそのまま使って何かを行うというのは現実的でないことが分かる。そこで、リクエストをポッドに転送する窓口を用意しよう。これをサービスと呼ぶ。サービスを使用することで、複数存在するポッドを意識すること無くポッドにアクセスすることができるようになる。
+ここで **Service** を利用できる。サービスは不変のIPアドレスを持ち、負荷分散を行いながらリクエストをポッドに転送するロードバランサのような役割を持っている。このおかげで複数存在するポッドを意識すること無くポッドにアクセスすることができるようになっている。
 
 - [Service - Kubernetes](https://kubernetes.io/docs/concepts/services-networking/service/)
 
-## 機能
+> ポッドへの橋渡し
 
-> サービスは不変のIPアドレスとポートを持ち、サービス作成時にラベルセレクタで定義したすべてのラベルと一致するラベルを持つ一連のポッド間で負荷分散を行います。
+## 仕組みと役割
 
-サービスは負荷分散を行うロードバランサと言っても良い。ここでポッドのIPアドレスは使用されない。
+サービスの機能は届いたリクエストをポッドに転送することだ。サービスは不変の仮想IPアドレス（ifconfigで見れないやつ）を持ち、このアドレスに送信されたパケットをポッドに転送する役割を持つ。この際、ポッドが複数あった場合は負荷分散が行われる。
 
-Kubernetes は、各ノードで動作する `kube-proxy` を使用して、ポッドとサービス間の接続を管理している。
+この役割をもつサービスだが、実際はServiceプロセスなどがこの役割を担っている訳ではないというところに注意してもらいたい。サービスはKubernetesの抽象概念であり、実体は `kube-proxy` 、 `kube-dns` 、 `Endpoints` やそれを支えるいくつかの機能の集合だ。（普通に利用するだけなら、抽象概念としてのサービスを知っているだけで問題はない）
 
-`kube-proxy` はノードに対し、 `iptables` ルールを追加および削除することで、このポートの再マッピングを管理している。ServiceのIPレイヤは、kube-proxyが動的に生成したiptablesのルールを使ってLinuxカーネルが処理を行う。
 
-### ServiceTypes
 
-サービスには4つのタイプがあり、作成時にそれを決定する。デフォルトは **ClusterIP** で、クラスター内にサービスを公開する設定になっている。
+あるノードに属するポッドが同クラスタ内のサービスにアクセスしようとした時、アクセスには相手のサービス名を利用できる（ `http://frontend:8080` ）。このサービス名をサービスの仮想IPアドレスに変換するのが `kube-dns` の役割で、パケットの宛先を変換したIPアドレスに書き換える。（この情報に限らず、多くのネットワークの情報はKVS `etcd` に保存されている。）
 
-#### ClusterIP
+次に、サービスの仮想IPアドレスを実際に存在するポッドIPアドレスに変換する。この作業は同ノードの `iptables` ルールによって宛先の変換が行われ、パケットの宛先がポッドIPアドレスに書き換えられる。ポッドが複数存在する場合はここでルールに従って負荷分散が行われ、パケットはポッドに送信される。
 
-サービスをクラスター内部だけに公開するためのサービスタイプ。
+さて、この `iptables` ルールは常に `kube-proxy` によって変更され続けているものだ。kube-proxyは `Endpoints records` の情報を `kube-apiserver` から定期的に取得し、同ノードのiptablesを更新している。このおかげでサービスへのリクエストはポッドにたどり着くことができる。
 
-サービスに割り当てられたIPのことをClusterIPと呼ぶ。デフォルトのタイプであり、これがクラスター内にサービスを公開するサービスタイプだ。同一クラスター内からのリクエストを受け付けることができるようになる。
+このエンドポイントレコードは基本的に *セレクタを持つサービスを作成した時に自動生成される* もので、マップされたサービスが持つポッドのIPアドレスを全て保有するものだ。自分で作成し、サービスにマップすることも可能。
 
-次のコマンドを入力すると、Kubernetesには指定ポッド（ラベル・セレクタ）への `Endpoints` と、そのエンドポイントにリクエストを転送するiptablesのルールが作成される。
+このように、サービスは多くの機能から成り立つ抽象概念であることが分かる。
+
+より詳しいKubernetesのネットワークについては次の記事。
+
+- [Kubernetes network]
+
+### Endpoints
+
+対応するサービス名とポッドのIPアドレスを保存したものを `Endpoints records` と呼ぶ。エンドポイントレコードは `kubectl get endpoints` で取得でき、例えば次のようなものだ。
 
 ```
-$ kubectl expose deployment hostnames --port=80 --target-port=9376
+$ kubectl get endpoints
+NAME     ENDPOINTS                                   AGE
+my-svc   172.17.0.4:80,172.17.0.7:80,172.17.0.8:80   8m
 ```
 
-ポッドが2つ以上存在する場合、ClusterIPはポッドの負荷分散を行う。これはiptablesのstatistic moduleのrandomモードで行われているらしい。（2つの負荷分散の場合： `-m statistic --mode random --probability 0.50000000000` ）
+ここで表示されているレコードは `my-svc` という名前のサービスとひも付いており、 `172.17.0.4:80` などを含む3つのエンドポイント（ポッドのIPアドレス）を保有している。このレコードが作成されたタイミングは、3つのレプリカを持つレプリカセットのサービスを作成したタイミングだ。（レプリカセットがスケールするなどでポッドが増減、IPアドレスが変化した時、エンドポイントレコードは自動で更新される。）
 
-#### NodePort
+エンドポイントの情報はマスターノードのKVS `etcd` に保存され、この情報は `kube-proxy` が `kube-apiserver` を使って定期的な取得を行う。
+
+### セレクタなしのサービス
+
+セレクタなしのサービスを作成すると、エンドポイントレコードは作成されない。（セレクタでポッドを識別するため、エンドポイントレコードは作成できない）
+
+これは主に、サービスの宛先をクラスタ外部（または別のネームスペース）のサービスやIPアドレスに向ける必要がある場合に使用される。以下、公式ドキュメントより引用。
+
+- 本番環境では外部データベースクラスタを使用したいが、テストでは独自のデータベースを使用する
+- サービスをNamespace別のクラスタまたは別のクラスタのサービスに向ける 必要があります。
+- 作業負荷をKubernetesに移行し、バックエンドの一部をKubernetesの外部で実行しています。
+
+セレクタが存在しないサービスには、独自のエンドポイントレコードをマップすることができる。（ `.metadata.name` が同じ名前のサービスにマップされる）
+
+```yaml
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: my-svc
+subsets:
+- addresses:
+  - ip: 1.2.3.4
+  ports:
+  - port: 9376
+```
+
+## ServiceTypes
+
+Kubernetesのサービスには4つの種類があり、作成時にどのタイプのサービスを作成するか設定できる。
+
+デフォルトのタイプは `ClusterIP` で、他にもClusterIPを拡張したタイプの `NodePort` 、NodePortを拡張したタイプの `LoadBalancer` が存在する。
+
+### ClusterIP
+
+ポッドをクラスタ内部に公開するためのサービスタイプ。
+
+`仕組みと役割` 項目の内容がこれで、仮想IPアドレス（ClusterIP）を持つサービスを作成できる。 `Endpoints` や `セレクタなしのサービス` での内容のように、指定するセレクタの有無によってClusterIPをどこに接続させるかを変えられる。
+
+ClusterIPを使ったクラスタ内部でのサービス同士の通信はマイクロサービスのような仕組みに活用することができる。
+
+```yaml
+kind: Service
+apiVersion: v1
+metadata:
+  name: my-svc
+spec:
+  selector:
+    app: my-app
+  ports:
+  - port: 80
+```
+
+サービスの確認には `kubectl get svc` を使う。テンプレートの適用後、設定ファイルでは指定していないが `TYPE: ClusterIP` となっていることが分かる。（明示的に指定したい場合はテンプレートで `type: ClusterIP` を指定する）
+
+```
+$ kubectl apply -f svc.md
+service/my-svc created
+
+$ kubectl get svc
+NAME         TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)   AGE
+my-svc       ClusterIP   10.96.50.75   <none>        80/TCP    5m
+```
+
+この時、 `.spec.selector` で指定した `my-app` で指定できるポッドが3つ存在していた場合、エンドポイントレコードには3つのポッドのIPアドレスが保存されている。レプリカ数の変更などでポッドの数やIPアドレスが変化しても自動で更新される。
+
+もしポッドが存在しないセレクタを指定してもサービス・エンドポイントレコードの作成は失敗せず、レコードのエンドポイントが `<none>` と表示される。
+
+```
+$ kubectl get endpoints
+NAME         ENDPOINTS                                   AGE
+my-svc       172.17.0.4:80,172.17.0.7:80,172.17.0.8:80   5m
+my-svc2      <none>                                      5m
+```
+
+ポッド内部からこのサービスへは `http://my-svc` でアクセスが可能。（なはず）
+
+### NodePort
 
 サービスをクラスター外部に公開するためのサービスタイプ。
 
-NodePortはClusterIPを拡張する形でサービスを外部に公開する。iptablesにはClusterIPの設定に加え、外部からアクセスできるNodePortに来たリクエストをローカルアドレスに転送するルールが追加される。
+NodePortはClusterIPを拡張したもので、ホストIPアドレスを経由した外部からのアクセスをClusterIPに転送する設定がiptablesに追加されている。
 
-公式ドキュメントのこの記述は、NodePortをよく知らない時は正直分からないとおもう。
+```yaml
+kind: Service
+apiVersion: v1
+metadata:
+  name: my-svc
+spec:
+  type: NodePort
+  selector:
+    app: my-app
+  ports:
+  - port: 80
+  　nodePort: 32100
+```
 
-> 各ノードのIP上のサービスを静的ポート（the NodePort）に公開します。ClusterIP先のサービス、NodePortサービスはルート、自動的に作成されます。NodePort要求することで、クラスタの外からサービスに連絡することができます<NodeIP>:<NodePort>。
+テンプレートを適用して確認すると `TYPE: NodePort` のサービスが確認できる。ClusterIPと違うのは `PORT(S)` の項目で、 `80:32100/TCP` のようにサービスのポート80がNodePortのポート32100に割り当てられた。
 
-NodePortが適用されると、Kubenetes Masterはサービス用に3000-32767からポートを割り当て、全ノードで同じポートを開放させる。リクエストを受けたノードはkube-proxyを経由して指定されたセレクタのポッドにリクエストを割り振る。
+```
+$ kubectl get svc
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+my-svc       NodePort    10.103.245.27   <none>        80:32100/TCP   1m
+```
 
-HTTPロードバランサである `ingress` はここで公開されるポートを使って実装されている。
+NodePortはデフォルトでは `30000-32767` の中から適当なポートを割り当てる。ここで割り当てられたポートは全てのノードで開放され、リクエストを受けたノードは通常通りkube-proxyを経由してポッドにリクエストを転送する。（このポートは `.spec.ports` でnordPortを使えば自分で設定できる）
 
-#### LoadBalancer
+マッピングはiptablesでNodePortのルールからClusterIPのルールにチェインするために使われており、NodePortで公開されたサービスにアクセスするためにも必要。
 
-サービスをクラウドプロバイダのロードバランサと紐付けるためのサービスタイプ。
+ここで公開されたサービスは `localhost:32100` などでアクセスできる。Minikubeの場合はサービスの一覧を `minikube service list` で見ることが出来るので、ここで確認しても良い。Nginxのポッドを立ち上げているなら、ブラウザでアクセスした時にNginxの画面が表示される。
 
-LoadBalancerはNodePortを拡張する形でサービスをロードバランサと紐付ける。ロードバランサとの紐付け時に設定される `EXTERNAL-IP` 宛のリクエストは、NodePortと同じくローカルアドレスに転送される。（結果、ポッドに転送される）
+```
+$ minikube service list
+|-------------|----------------------|-----------------------------|
+|  NAMESPACE  |         NAME         |             URL             |
+|-------------|----------------------|-----------------------------|
+| default     | my-svc               | http://192.168.99.100:32100 |
+```
 
-Cloud Providerの設定が正しければ、Kubernetesの設定を行った時にクラウドプロバイダのロードバランサも自動的に設定される。（GKE、EKSとか使ってる時は不要だと思う…）
+HTTPロードバランサの `ingress` はここで公開されたポートを使って実装される。
+
+### LoadBalancer
+
+サービスをクラスタ外部に公開し、さらにクラウドプロバイダのロードバランサと紐付けるためのサービスタイプ。
+
+LoadBalancerはNodePortを拡張したもので、事前に `Cloud Provider` の設定を行うことでLoadBalancer作成時にクラウドプロバイダのロードバランサも自動で作成することができる。
+
+GKEやEKSでは恐らく不要。
+
+- [Cloud Providers - Kubernetes](https://kubernetes.io/docs/concepts/cluster-administration/cloud-providers/)
 
 ```yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: my-service
+  name: my-svc
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-internal: 0.0.0.0/0
 spec:
   type: LoadBalancer
   selector:
-    app: express
+    app: my-app
   ports:
   - protocol: TCP
-    port: 3000
-    targetPort: 3000
-  loadBalancerIP: 10.132.160.51
+    port: 80
+  　nodePort: 32100
 ```
 
-#### ExternalName
+※ WIP
 
-> その値を持つレコードを返すことによって、サービスをexternalNameフィールドの内容（例えばfoo.bar.example.com）にマッピング CNAMEします。どのような種類のプロキシも設定されていません。これにはバージョン1.7以上が必要ですkube-dns。
+### ExternalName
+
+※ WIP
 
 ## 参考
 
