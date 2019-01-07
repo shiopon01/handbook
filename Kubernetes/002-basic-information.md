@@ -1,16 +1,14 @@
 # Basic information
 
-Kubernetesを利用するにあたって必要となる基本的な概念を軽く解説する。
+Kubernetesを利用するにあたって必要となる基本的な概念・用語を大まかに紹介する。
 
-解説用のマークダウンファイルが用意されている場合は単語名がリンクになっている。
-
-覚えないといけないことは多いので、初めてKubernetesにチャレンジする人は流し読みしてもらっても問題ない。ファイルを先頭の番号順に読み進めることでこれらをなんとなく理解していける。
+覚える用語は多くあるため、初めての人は流し読みしても問題ない。ファイルを先頭の番号順に読み進めることでそれらの用語をなんとなくでも理解していけるはずだ。
 
 ## Kubernetes Cluster
 
-1つ以上のマスターノード、1つ以上のワーカーノードの集まりをKubernetesクラスターと呼ぶ。
+1つ以上のマスターノード、1つ以上のワーカーノードの集まりをKubernetesクラスターと呼ぶ。クラスターはKubernetesが動作するために必要な構成であり、Kubernetesの実体とも言える。
 
-MinikubeでローカルにKubernetes環境を構築した場合も、マスターノードとワーカーノードは同一ノードだがギリギリ条件は満たされるのでKubernetesクラスターと呼べる。
+MinikubeでローカルにKubernetes環境を構築した場合も、マスターノードとワーカーノードは同一ノードだが条件は満たされるのでKubernetesクラスターと呼べる。
 
 ## Kubernetes Node
 
@@ -18,28 +16,35 @@ MinikubeでローカルにKubernetes環境を構築した場合も、マスタ�
 
 Kubernetesを構成するノードには2種類あり、それぞれ役割が違う `マスターノード` と `ワーカーノード` が存在する。
 
-- [Kubernetes Components](https://kubernetes.io/docs/concepts/overview/components/)
-
+- [Kubernetes Components - Kubernetes](https://kubernetes.io/docs/concepts/overview/components/)
 
 ## Kubernetes Master（マスターノード）
 
-Kubernetesクラスターの望ましい状態を維持するためのノードで、1つのクラスターには必ず1つ以上のマスターノードが存在する。いわばKubernetesクラスターの司令塔である。
+2種類あるKubernetes Nodeのうちのひとつ、マスターノードと呼ばれるノード。
 
-マスターノードは1つでも問題ないが、複数並べることで可用性を確保できる。GKEやEKSはこのあたりを勝手にやって落ちないマスターノードを提供してくれるのでとても楽。（個人で使うには高い）
+Kubernetesクラスターの望ましい状態を維持するためのノードで、Kubernetesクラスターの司令塔の役割を持つ。司令塔なので、1つのクラスターには必ず1つ以上のマスターノードが存在している。
+
+マスターノードと呼ばれるノードには3つのプロセス（ `kube-apiserver` 、 `kube-controller-manager` 、 `kube-scheduler` ）が実行されており、ユーザーとの対話（kubectlなど）などは全てこのノードが応じている。kubectlなどを用いたKubernetesとの対話は、実質マスターノードとの対話である。
+
+余談だが、マスターノードがダウンすることは実質クラスターの死なので、マスターノードも複数並べることで可用性を確保することができる。GKEやEKSは絶対にダウンしないマスターノードを提供してくれるのでとても楽だが、個人で使うには高い。
 
 - [Creating Highly Available Clusters with kubeadm](https://kubernetes.io/docs/setup/independent/high-availability/)
 
-クラスター内では3つのプロセス（ `kube-apiserver` 、 `kube-controller-manager` 、 `kube-scheduler` ）を実行している単一のノードをマスターノードと呼び、このマスターノードが全てのユーザーとの対話（kubectlなど）に応じている。（kubectlなどを用いたKubernetesとの対話は、実質マスターノードとの対話である）
-
 ### kube-apiserver
 
-Kubernetesのリソース管理を行うAPIを提供するプロセス。kubectlはこのプロセスと通信を行っている。
+Kubernetesのリソースを管理するためのAPIを提供するプロセス。
 
 全てのプロセスはこのAPIサーバーへのアクセスを通して操作を行う。そのため、認証・認可の仕組みも `kube-apiserver` に備えられている。
 
+具体的には、kubectlはkube-apiserverと通信してKubernetesのリソースを操作するなど。このAPIはkubectlが呼び出す以外にも、ポッドがルーティングの情報を取得するために呼び出すなどワーカーノードやそのリソースから呼び出される時も多い。
+
+- [kube-apiserver](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/)
+
 ### kube-controller-manager
 
-各種コントローラーオブジェクトを起動するマネージャー。
+コントローラーオブジェクトを起動するマネージャー。コントローラーオブジェクトには `ReplicaSet` や `DaemonSet` などが含まれる。
+
+- [kube-controller-manager - Kubernetes](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/)
 
 ### kube-scheduler
 
@@ -47,8 +52,11 @@ Kubernetesのリソース管理を行うAPIを提供するプロセス。kubectl
 
 `kube-apiserver` のAPIを使ってリソースの状態監視を行い、ポッドとノードを紐付ける役割を持つ。
 
+- [kube-scheduler - Kubernetes](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-scheduler/)
 
 ## Kubernetes Nodes（ワーカーノード）
+
+2種類あるKubernetes Nodeのうちのひとつ、ワーカーノードと呼ばれるノード。
 
 Dockerによってアプリケーションコンテナが実行されるノードで、実態はマスターノードが管理している物理サーバー、またはVMなど。アプリケーションのコンテナ以外にもマスターノードに情報を送り続けるためのサービスなど、管理されるために必要なものも同時に実行されている。
 
